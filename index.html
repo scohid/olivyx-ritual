@@ -22,8 +22,9 @@
       <p class="eyebrow">Ritual Gua Sha</p>
       <h1 id="intro-title" class="intro-title">Un gesto guiado,<br /><em>sobre tu propio rostro.</em></h1>
       <p class="intro-text">
-        Coloca el móvil frente a ti, ten a mano tu piedra y unas gotas de escualano de oliva.
-        Te guiamos por seis zonas del rostro, 15 segundos cada una.
+        Coloca el móvil frente a ti, ten a mano tu piedra y unas gotas de escualano de oliva o
+        Facial Oil de OLIVYX. <strong class="kw-dark">Calentamiento de cuello, respiración y seis zonas del rostro</strong>,
+        en unos <span id="intro-time">10</span> minutos.
       </p>
 
       <button class="btn btn-primary" id="btn-start" type="button">Comenzar mi ritual</button>
@@ -91,6 +92,10 @@
       <img class="sheet-logo" src="assets/olivyx-logo-light.svg" alt="OLIVYX" />
 
       <div class="sheet-body" id="sheet-body" aria-live="polite">
+        <div class="eyebrow-row">
+          <p class="step-eyebrow" id="step-eyebrow"></p>
+          <span class="side-tag" id="side-tag" hidden></span>
+        </div>
         <h2 class="step-title" id="step-title"></h2>
         <p class="step-text" id="step-text"></p>
 
@@ -103,6 +108,7 @@
           </p>
         </div>
         <p class="step-note" id="step-note" hidden></p>
+        <p class="next-up" id="next-up"></p>
       </div>
 
       <nav class="controls" id="controls" aria-label="Controles del ritual">
@@ -119,7 +125,7 @@
         <button class="icon-btn" id="btn-next" type="button" aria-label="Paso siguiente">
           <svg viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></svg>
         </button>
-        <span class="step-count" id="step-count">01 / 08</span>
+        <span class="remaining" id="remaining"></span>
       </nav>
 
       <div class="end-actions" id="end-actions" hidden>

@@ -2,7 +2,10 @@ import { startCamera, stopCamera, checkSupport, describeCameraError, isInAppBrow
 import { createTracker } from './tracker.js';
 import { FaceState, makeMapper } from './faceState.js';
 import { Renderer } from './renderer.js';
-import { RITUAL, STEP_SECONDS, EDGES, FACE_OVAL, requiredIndices, resolveStroke } from './ritual.js';
+import {
+  RITUAL, SECTIONS, TOTAL_SECONDS, BREATH, EDGES, FACE_OVAL,
+  requiredIndices, resolveStroke, emphasize,
+} from './ritual.js';
 import { stoneIcon } from './stone.js';
 
 const $ = (s) => document.querySelector(s);
@@ -25,7 +28,8 @@ const el = {
   loadingText: $('#loading-text'),
   errorTitle: $('#error-title'),
   errorText: $('#error-text'),
-  stepCount: $('#step-count'),
+  eyebrow: $('#step-eyebrow'),
+  sideTag: $('#side-tag'),
   stepTitle: $('#step-title'),
   stepText: $('#step-text'),
   tool: $('#tool'),
@@ -33,6 +37,8 @@ const el = {
   toolEdge: $('#tool-edge'),
   toolDir: $('#tool-dir'),
   note: $('#step-note'),
+  nextUp: $('#next-up'),
+  remaining: $('#remaining'),
   segments: $('#segments'),
   timer: $('#timer'),
   timerNum: $('#timer-num'),
@@ -44,6 +50,7 @@ const el = {
   sheetBody: $('#sheet-body'),
   debug: $('#debug'),
   inapp: $('#inapp-note'),
+  introTime: $('#intro-time'),
 };
 
 const RING = 2 * Math.PI * 20; // circunferencia del anillo del contador (r = 20)
@@ -64,12 +71,16 @@ const state = {
   frameN: 0,
   wakeLock: null,
   shownSecond: -1,
+  shownRemaining: '',
+  moveIdx: -1,
 };
 
 const indices = DEBUG ? Array.from({ length: 478 }, (_, i) => i) : requiredIndices();
 const face = new FaceState(indices);
 const renderer = new Renderer(el.canvas);
 const LABELS = requiredIndices();
+
+const fmt = (s) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
 
 // ── Pantallas ──────────────────────────────────────────────────────────────
 function show(screen) {
@@ -140,17 +151,27 @@ function exit() {
 }
 
 // ── Ritual ─────────────────────────────────────────────────────────────────
+/** Barra superior: un segmento por paso, agrupados por sección. */
 function buildSegments() {
   el.segments.innerHTML = '';
-  RITUAL.forEach((step, i) => {
-    const b = document.createElement('button');
-    b.className = 'segment';
-    b.type = 'button';
-    b.setAttribute('aria-label', `Ir al paso ${i + 1}: ${step.title}`);
-    b.innerHTML = '<span class="segment-fill"></span>';
-    b.addEventListener('click', () => { goToStep(i); togglePlay(true); });
-    el.segments.appendChild(b);
+  SECTIONS.forEach((section) => {
+    const group = document.createElement('div');
+    group.className = 'seg-group';
+    const steps = RITUAL.map((s, i) => [s, i]).filter(([s]) => s.section === section);
+    group.style.flexGrow = String(steps.length);
+    steps.forEach(([step, i]) => {
+      const b = document.createElement('button');
+      b.className = 'segment';
+      b.type = 'button';
+      b.dataset.index = String(i);
+      b.setAttribute('aria-label', `Ir al paso ${i + 1}: ${step.title}`);
+      b.innerHTML = '<span class="segment-fill"></span>';
+      b.addEventListener('click', () => { goToStep(i); togglePlay(true); });
+      group.appendChild(b);
+    });
+    el.segments.appendChild(group);
   });
+  state.segmentEls = [...el.segments.querySelectorAll('.segment')];
 }
 
 function goToStep(i) {
@@ -159,23 +180,28 @@ function goToStep(i) {
   state.anim = 0;
   state.completed = false;
   state.shownSecond = -1;
+  state.moveIdx = -1;
   const step = RITUAL[state.step];
 
-  el.stepCount.textContent = `${String(state.step + 1).padStart(2, '0')} / ${String(RITUAL.length).padStart(2, '0')}`;
+  el.eyebrow.textContent = `Paso ${state.step + 1} de ${RITUAL.length} · ${step.section}`;
   el.stepTitle.textContent = step.title;
-  el.stepText.textContent = step.text;
+  el.stepText.innerHTML = emphasize(step.text);
 
   if (step.tool) {
     el.tool.hidden = false;
-    el.note.hidden = true;
     el.toolIcon.innerHTML = stoneIcon(step.tool.edge, step.tool.travel);
     el.toolEdge.textContent = EDGES[step.tool.edge].label;
     el.toolDir.textContent = step.tool.dir;
   } else {
     el.tool.hidden = true;
-    el.note.hidden = false;
-    el.note.textContent = step.note;
   }
+  el.note.hidden = !step.note || !!step.tool;
+  if (step.note) el.note.innerHTML = emphasize(step.note);
+
+  const next = RITUAL[state.step + 1];
+  el.nextUp.innerHTML = next
+    ? `A continuación · <span>${next.title}</span>`
+    : 'Último paso del ritual';
 
   // Animación suave de entrada del contenido del paso
   el.sheetBody.classList.remove('in');
@@ -186,27 +212,62 @@ function goToStep(i) {
   el.controls.hidden = false;
   el.prev.disabled = state.step === 0;
   el.timer.classList.remove('done');
+  updateMove();
   updateTimer();
   updateSegments();
 }
 
+function currentMove() {
+  const step = RITUAL[state.step];
+  let acc = 0;
+  for (let i = 0; i < step.moves.length; i++) {
+    const mv = step.moves[i];
+    if (state.elapsed < acc + mv.seconds || i === step.moves.length - 1) {
+      return { move: mv, index: i, elapsed: state.elapsed - acc };
+    }
+    acc += mv.seconds;
+  }
+  return null;
+}
+
+function updateMove() {
+  const { move, index } = currentMove();
+  if (index === state.moveIdx) return;
+  state.moveIdx = index;
+  el.sideTag.hidden = !move.label;
+  el.sideTag.textContent = move.label;
+  if (move.label) {
+    el.sideTag.classList.remove('pulse');
+    void el.sideTag.offsetWidth;
+    el.sideTag.classList.add('pulse');
+  }
+}
+
 function updateSegments() {
-  [...el.segments.children].forEach((seg, i) => {
-    const f = i < state.step ? 1 : i > state.step ? 0 : Math.min(1, state.elapsed / STEP_SECONDS);
+  state.segmentEls.forEach((seg, i) => {
+    const f = i < state.step ? 1 : i > state.step ? 0 : Math.min(1, state.elapsed / RITUAL[i].seconds);
     seg.firstChild.style.transform = `scaleX(${f})`;
     seg.classList.toggle('current', i === state.step);
   });
 }
 
 function updateTimer() {
-  const remaining = Math.max(0, STEP_SECONDS - state.elapsed);
-  const sec = Math.ceil(remaining);
+  const step = RITUAL[state.step];
+  const left = Math.max(0, step.seconds - state.elapsed);
+  const sec = Math.ceil(left);
   if (sec !== state.shownSecond) {
     state.shownSecond = sec;
     el.timerNum.textContent = sec;
-    el.timer.setAttribute('aria-label', `Quedan ${sec} segundos`);
+    el.timer.setAttribute('aria-label', `Quedan ${sec} segundos de este paso`);
+    let total = left;
+    for (let i = state.step + 1; i < RITUAL.length; i++) total += RITUAL[i].seconds;
+    const label = `Quedan ${fmt(Math.ceil(total))}`;
+    if (label !== state.shownRemaining) {
+      state.shownRemaining = label;
+      el.remaining.textContent = label;
+    }
   }
-  el.timerRing.style.strokeDashoffset = String(RING * (1 - remaining / STEP_SECONDS));
+  el.timerRing.style.strokeDashoffset = String(RING * (1 - left / step.seconds));
 }
 
 function complete() {
@@ -249,29 +310,64 @@ function frame(now) {
   }
   face.tick(t);
 
-  // 2. Contador de 15 s por paso; al terminar pasa solo al siguiente.
+  // 2. Contador del paso; al terminar pasa solo al siguiente.
+  const step = RITUAL[state.step];
   if (state.playing && !state.completed) {
     state.elapsed += dt;
-    if (state.elapsed >= STEP_SECONDS) {
+    if (state.elapsed >= step.seconds) {
       if (state.step < RITUAL.length - 1) goToStep(state.step + 1);
-      else { state.elapsed = STEP_SECONDS; complete(); }
+      else { state.elapsed = step.seconds; complete(); }
     }
   }
   if (state.playing || state.completed) state.anim += dt;
+  updateMove();
   updateTimer();
   updateSegments();
 
   // 3. Presencia del rostro
   state.faceAlpha += ((face.present ? 1 : 0) - state.faceAlpha) * Math.min(1, dt * 6);
-  el.faceHint.hidden = face.present || t - face.lastSeen < 0.8;
+  const current = RITUAL[state.step];
+  el.faceHint.hidden = current.overlay === 'breath' || face.present || t - face.lastSeen < 1.2;
 
   // 4. Dibujo
   renderer.clear();
-  if (state.faceAlpha > 0.01 && face.get(1)) draw();
+  if (current.overlay === 'breath') drawBreath();
+  else if (state.faceAlpha > 0.01 && face.get(1)) draw();
   if (DEBUG) {
     renderer.debug(face, LABELS);
     el.debug.textContent = `detect ${state.detectCost.toFixed(1)} ms · ${state.tracker.delegate} · ${state.tracker.source} · ${v.videoWidth}×${v.videoHeight}`;
   }
+}
+
+/** Respiración guiada: funciona aunque no se detecte el rostro. */
+function drawBreath() {
+  const cycle = BREATH.inhale + BREATH.exhale;
+  const tc = state.elapsed % cycle;
+  const ease = (x) => 0.5 - 0.5 * Math.cos(Math.PI * clamp(x, 0, 1));
+  let p, label, count;
+  if (tc < BREATH.inhale) {
+    p = ease(tc / BREATH.inhale);
+    label = 'Inspira';
+    count = Math.ceil(BREATH.inhale - tc);
+  } else {
+    p = 1 - ease((tc - BREATH.inhale) / BREATH.exhale);
+    label = 'Espira';
+    count = Math.ceil(cycle - tc);
+  }
+
+  // Centro: sobre el rostro si se detecta; si no, en la zona del encuadre.
+  const fb = { x: renderer.w / 2, y: renderer.h * 0.34, r: Math.min(renderer.w * 0.36, renderer.h * 0.2) };
+  let cx = fb.x, cy = fb.y, r = fb.r;
+  const top = face.get(10), chin = face.get(152), nose = face.get(1);
+  if (top && chin && nose && state.faceAlpha > 0.01) {
+    const fr = Math.hypot(chin.x - top.x, chin.y - top.y) * 0.62;
+    const fx = (top.x + chin.x) / 2, fy = (top.y + chin.y) / 2;
+    const k = state.faceAlpha;
+    cx = fb.x + (fx - fb.x) * k;
+    cy = fb.y + (fy - fb.y) * k;
+    r = fb.r + (fr - fb.r) * k;
+  }
+  renderer.breath({ x: cx, y: cy }, r, p, label, count, smooth(0, 0.8, state.anim));
 }
 
 function draw() {
@@ -283,16 +379,18 @@ function draw() {
   const db = Math.hypot(n.x - b.x, n.y - b.y);
   const faceW = Math.hypot(a.x - b.x, a.y - b.y);
   const ratio = da / (da + db || 1);
-  // Si la persona gira la cabeza, el lado que se aleja se desvanece.
+  // Si la persona gira la cabeza, el lado que se aleja se desvanece
+  // (salvo en el calentamiento, donde girar es el ejercicio).
+  const step = RITUAL[state.step];
+  const warm = step.section === 'Calentamiento';
   const vis = {
-    a: smooth(0.16, 0.3, ratio),
-    b: smooth(0.16, 0.3, 1 - ratio),
+    a: warm ? 1 : smooth(0.16, 0.3, ratio),
+    b: warm ? 1 : smooth(0.16, 0.3, 1 - ratio),
     c: 1,
   };
 
   const lw = clamp(faceW * 0.0066, 1.1, 2.6);
   const head = clamp(faceW * 0.03, 6, 14);
-  const step = RITUAL[state.step];
   const alpha = state.faceAlpha * smooth(0, 0.7, state.anim);
 
   if (step.overlay === 'drops') {
@@ -313,17 +411,20 @@ function draw() {
     return;
   }
 
+  const { move } = currentMove();
   const phase = (state.anim / (step.period || 2.2)) % 1;
   const stones = [];
-  for (const s of step.strokes) {
+  for (const s of move.strokes) {
     const pts = resolveStroke(s, face);
     if (!pts) continue;
-    const sAlpha = alpha * vis[s.side];
-    const tip = renderer.stroke(pts, { phase, alpha: sAlpha, lw, head });
-    if (s.stone && step.tool) stones.push([tip, sAlpha]);
+    // En los pasos por lados, el lado que no toca se queda en segundo plano.
+    const active = !move.side || s.side === 'c' || s.side === move.side;
+    const sAlpha = alpha * vis[s.side] * (active ? 1 : 0.22);
+    const tip = renderer.stroke(pts, { phase, alpha: sAlpha, lw: warm ? lw * 1.25 : lw, head: warm ? head * 1.3 : head });
+    if (s.stone && active && step.tool) stones.push([tip, sAlpha]);
   }
   // La piedra se dibuja encima de todas las flechas.
-  const width = clamp(faceW * 0.15, 26, 70);
+  const width = clamp(faceW * 0.32, 60, 150);
   for (const [tip, sAlpha] of stones) renderer.stone(tip, step.tool.edge, { width, alpha: sAlpha });
 }
 
@@ -361,7 +462,7 @@ el.restart.addEventListener('click', () => { goToStep(0); togglePlay(true); });
 el.prev.addEventListener('click', () => { goToStep(state.step - 1); togglePlay(true); });
 el.next.addEventListener('click', () => {
   if (state.step < RITUAL.length - 1) { goToStep(state.step + 1); togglePlay(true); }
-  else { state.elapsed = STEP_SECONDS; complete(); }
+  else { state.elapsed = RITUAL[state.step].seconds; complete(); }
 });
 el.repeat.addEventListener('click', () => { goToStep(state.step); togglePlay(true); });
 el.play.addEventListener('click', () => togglePlay());
@@ -392,6 +493,7 @@ window.addEventListener('resize', () => {
 });
 
 buildSegments();
+if (el.introTime) el.introTime.textContent = String(Math.round(TOTAL_SECONDS / 60));
 if (isInAppBrowser()) el.inapp.hidden = false;
 if (DEBUG) el.debug.hidden = false;
 show('intro');

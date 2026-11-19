@@ -206,7 +206,8 @@ body[data-screen='stage'] #stage { display: flex; }
   color: var(--cream);
   z-index: 2;
 }
-.segments { display: flex; gap: 4px; }
+.segments { display: flex; gap: 10px; }
+.seg-group { display: flex; gap: 3px; flex-basis: 0; min-width: 0; }
 .segment {
   flex: 1;
   height: 16px;               /* área táctil; la barra visible es ::before */
@@ -401,14 +402,61 @@ body[data-screen='stage'] #stage { display: flex; }
   border-top: 1px solid rgba(243, 237, 224, .1);
 }
 .controls #btn-repeat { justify-self: start; margin-left: -8px; }
-.step-count {
+.remaining {
   justify-self: end;
   font-size: 10.5px;
-  letter-spacing: .2em;
+  letter-spacing: .06em;
   opacity: .75;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
+
+/* Guía de pasos dentro del panel */
+.eyebrow-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+.step-eyebrow {
+  margin: 0;
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: .18em;
+  text-transform: uppercase;
+  color: var(--sage);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.side-tag {
+  flex: none;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: var(--cream);
+  color: var(--olive-900);
+  font-size: 10.5px;
+  font-weight: 500;
+  letter-spacing: .04em;
+}
+.side-tag.pulse { animation: pop .5s var(--ease) both; }
+.next-up {
+  margin: 0 0 10px;
+  font-size: 11px;
+  color: rgba(243, 237, 224, .55);
+}
+.next-up span { color: rgba(243, 237, 224, .85); }
+
+/* Palabras clave destacadas */
+.kw {
+  font-weight: 500;
+  color: #fff8e6;
+  background-image: linear-gradient(transparent 62%, rgba(198, 173, 116, .38) 62%);
+  padding: 0 1px;
+}
+.step-note .kw { font-style: normal; }
+.kw-dark { font-weight: 400; color: var(--olive-700); }
 
 .end-actions {
   display: flex;
@@ -443,6 +491,7 @@ body[data-screen='stage'] #stage { display: flex; }
   .step-text { font-size: 12.5px; margin-bottom: 8px; }
   .tool { margin-bottom: 8px; padding: 6px 10px 6px 6px; }
   .tool-icon { width: 36px; height: 36px; }
+  .next-up { margin-bottom: 6px; }
   .icon-btn { width: 42px; height: 42px; }
   .icon-btn-main { width: 50px; height: 50px; }
   .timer { width: 46px; height: 46px; }
@@ -453,7 +502,7 @@ body[data-screen='stage'] #stage { display: flex; }
 }
 @media (max-width: 350px) {
   .controls { gap: 8px; }
-  .step-count { display: none; }
+  .remaining { display: none; }
 }
 
 /* ── Móvil en horizontal: panel lateral ──────────────── */
@@ -483,6 +532,7 @@ body[data-screen='stage'] #stage { display: flex; }
 
 /* ── Animaciones ─────────────────────────────────────── */
 @keyframes rise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+@keyframes pop { from { opacity: 0; transform: scale(.9); } to { opacity: 1; transform: none; } }
 @keyframes fade { from { opacity: 0; } to { opacity: 1; } }
 @keyframes spin { to { transform: rotate(360deg); } }
 @keyframes breathe { 0%, 100% { opacity: .55; transform: scale(1); } 50% { opacity: 1; transform: scale(1.02); } }

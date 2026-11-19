@@ -198,12 +198,12 @@ export class Renderer {
     c.rotate(tip.angle - (e.angle * Math.PI) / 180);
     c.scale(s, s);
     c.translate(-Math.cos((e.angle * Math.PI) / 180) * e.dist, -Math.sin((e.angle * Math.PI) / 180) * e.dist);
-    c.fillStyle = `rgba(62, 72, 39, ${0.42 * a})`;
+    c.fillStyle = `rgba(62, 72, 39, ${0.5 * a})`;
     c.fill(this.stonePath);
-    c.lineWidth = 1.1 / s;
+    c.lineWidth = 1.5 / s;
     c.strokeStyle = `rgba(${CREAM}, ${0.7 * a})`;
     c.stroke(this.stonePath);
-    c.lineWidth = 3 / s;
+    c.lineWidth = 4 / s;
     c.lineCap = 'round';
     c.strokeStyle = `rgba(${LIGHT}, ${0.95 * a})`;
     c.stroke(this.edgePaths[edge]);
@@ -232,6 +232,55 @@ export class Renderer {
       c.arc(p.x, p.y, r * 1.4, 0, Math.PI * 2);
       c.fill();
     });
+  }
+
+  /**
+   * Respiración: un círculo translúcido sobre el rostro que se llena al
+   * inspirar y se vacía al espirar. Se ve la cara a través de él.
+   * @param p  0..1 nivel de llenado
+   */
+  breath(c, rMax, p, label, count, alpha) {
+    const ctx = this.ctx;
+    const r = rMax * (0.22 + 0.78 * p);
+
+    // Anillos guía (tamaño máximo)
+    ctx.lineWidth = 1.2;
+    ctx.beginPath();
+    ctx.arc(c.x, c.y, rMax, 0, Math.PI * 2);
+    ctx.strokeStyle = `rgba(${CREAM}, ${0.5 * alpha})`;
+    ctx.stroke();
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.arc(c.x, c.y, rMax * 1.09, 0, Math.PI * 2);
+    ctx.strokeStyle = `rgba(${CREAM}, ${0.18 * alpha})`;
+    ctx.stroke();
+
+    // Relleno con degradado suave
+    const g = ctx.createRadialGradient(c.x, c.y, 0, c.x, c.y, r);
+    g.addColorStop(0, `rgba(${LIGHT}, ${0.34 * alpha})`);
+    g.addColorStop(0.65, `rgba(${CREAM}, ${0.22 * alpha})`);
+    g.addColorStop(1, `rgba(${CREAM}, ${0.1 * alpha})`);
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.arc(c.x, c.y, r, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.lineWidth = 1.4;
+    ctx.strokeStyle = `rgba(${LIGHT}, ${0.75 * alpha})`;
+    ctx.stroke();
+
+    // Indicación
+    ctx.save();
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.shadowColor = 'rgba(30, 34, 18, 0.45)';
+    ctx.shadowBlur = 10;
+    ctx.fillStyle = `rgba(${LIGHT}, ${alpha})`;
+    ctx.font = '300 26px Poppins, "Helvetica Neue", sans-serif';
+    ctx.fillText(label, c.x, c.y - 10);
+    ctx.font = '400 15px Poppins, "Helvetica Neue", sans-serif';
+    ctx.fillStyle = `rgba(${CREAM}, ${0.85 * alpha})`;
+    ctx.fillText(String(count), c.x, c.y + 20);
+    ctx.restore();
   }
 
   debug(face, labels) {

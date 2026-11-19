@@ -5,15 +5,16 @@
 //   148                 → un landmark
 //   B(129, 50, 0.3)     → 30 % del camino del landmark 129 hacia el 50
 //   D(176, 10, 152, k)  → landmark 176 desplazado k veces el vector 10→152
-//                         (eje frente-barbilla). Sirve para el cuello, que no
-//                         tiene landmarks propios.
+//   out(234, 0.3)       → landmark 234 desplazado hacia fuera del rostro
+//                         (desde la nariz), un 30 % de su distancia a ella
 // Los trazos se definen para un lado del rostro y se reflejan con PAIRS.
 // Con ?debug=1 se ven los índices sobre la cara para calibrar.
+//
+// Textos: las palabras entre **dobles asteriscos** se muestran destacadas.
 
 const B = (a, b, t) => ({ a, b, t });
 const D = (base, from, to, k) => ({ base, from, to, k });
-
-export const STEP_SECONDS = 15;
+const out = (i, k) => D(i, 1, i, k);
 
 // Pares simétricos izquierda/derecha de la malla canónica.
 export const PAIRS = [
@@ -47,135 +48,209 @@ export const FACE_OVAL = [
   152, 148, 176, 149, 150, 136, 172, 58, 132, 93, 234, 127, 162, 21, 54, 103, 67, 109,
 ];
 
-// ── Trazos (lado A = índices "bajos", lado derecho de la persona) ──────────
+// ── Trazos (lado A = índices "bajos" = lado derecho de la persona) ─────────
 // inset: fracción para acercar cada punto hacia `toward`, de modo que el trazo
 // quede sobre la piel y no sobre el borde del contorno.
 const S = {
-  neck: { // base del cuello → mandíbula
-    anchors: [D(176, 10, 152, 0.4), D(176, 10, 152, 0.07)],
-    inset: 0.15, toward: 152,
-  },
-  neckOuter: {
-    anchors: [D(150, 10, 152, 0.3), D(150, 10, 152, 0.05)],
-    inset: 0.22, toward: 152,
-  },
-  jaw: { // barbilla → oreja por el contorno
-    anchors: [B(152, 148, 0.55), 176, 149, 150, 136, 172, 58, B(132, 93, 0.35)],
-    inset: 0.09, toward: 1,
-  },
-  smileLow: { // comisura → oreja
-    anchors: [B(61, 205, 0.3), B(205, 132, 0.5), B(132, 93, 0.6)],
-    inset: 0.06, toward: 1,
-  },
-  smileHigh: { // aleta nasal → bajo el pómulo → oreja
-    anchors: [B(129, 205, 0.25), B(50, 205, 0.5), B(234, 93, 0.55)],
-    inset: 0.06, toward: 1,
-  },
-  underEye: { // lagrimal → bajo el ojo → sien
-    anchors: [B(133, 50, 0.2), B(145, 50, 0.28), B(33, 116, 0.4), B(33, 127, 0.7)],
-    inset: 0, toward: 1,
-  },
-  brow: { // inicio de la ceja → sien siguiendo el arco
-    anchors: [B(55, 107, 0.5), 105, 70, B(21, 162, 0.5)],
-    inset: 0.03, toward: 168,
-  },
-  foreheadUp: { // sobre la ceja → nacimiento del pelo
-    anchors: [B(107, 109, 0.12), B(107, 109, 0.86)],
-    inset: 0, toward: 168,
-  },
-  foreheadUpOuter: {
-    anchors: [B(105, 67, 0.14), B(105, 67, 0.84)],
-    inset: 0, toward: 168,
-  },
+  // Calentamiento: arcos alrededor del rostro, fuera de la piel
+  arcUp: { anchors: [out(172, 0.22), out(234, 0.26), out(54, 0.2)], inset: 0, toward: 1 },
+  arcDown: { anchors: [out(54, 0.2), out(234, 0.26), out(172, 0.22)], inset: 0, toward: 1 },
+  tilt: { anchors: [out(10, 0.14), out(103, 0.22), out(127, 0.32), out(93, 0.45)], inset: 0, toward: 1 },
+  turn: { anchors: [B(1, 234, 0.25), B(1, 234, 0.75), out(234, 0.3)], inset: 0, toward: 1 },
+
+  // Gua Sha
+  neck: { anchors: [D(176, 10, 152, 0.4), D(176, 10, 152, 0.07)], inset: 0.15, toward: 152 },
+  neckOuter: { anchors: [D(150, 10, 152, 0.3), D(150, 10, 152, 0.05)], inset: 0.22, toward: 152 },
+  jaw: { anchors: [B(152, 148, 0.55), 176, 149, 150, 136, 172, 58, B(132, 93, 0.35)], inset: 0.09, toward: 1 },
+  smileLow: { anchors: [B(61, 205, 0.3), B(205, 132, 0.5), B(132, 93, 0.6)], inset: 0.06, toward: 1 },
+  smileHigh: { anchors: [B(129, 205, 0.25), B(50, 205, 0.5), B(234, 93, 0.55)], inset: 0.06, toward: 1 },
+  underEye: { anchors: [B(133, 50, 0.2), B(145, 50, 0.28), B(33, 116, 0.4), B(33, 127, 0.7)], inset: 0, toward: 1 },
+  brow: { anchors: [B(55, 107, 0.5), 105, 70, B(21, 162, 0.5)], inset: 0.03, toward: 168 },
+  foreheadUp: { anchors: [B(107, 109, 0.12), B(107, 109, 0.86)], inset: 0, toward: 168 },
+  foreheadUpOuter: { anchors: [B(105, 67, 0.14), B(105, 67, 0.84)], inset: 0, toward: 168 },
 };
 
-/** Un trazo por lado. `stone` = en este trazo se dibuja la piedra deslizándose. */
-const pair = (key, stone = false) => {
-  const s = S[key];
-  return [
-    { id: `${key}-a`, side: 'a', stone, ...s },
-    { id: `${key}-b`, side: 'b', stone, ...s, anchors: s.anchors.map(mirrorAnchor) },
-  ];
-};
+const sideA = (key, stone = false) => ({ id: `${key}-a`, side: 'a', stone, ...S[key] });
+const sideB = (key, stone = false) => ({ id: `${key}-b`, side: 'b', stone, ...S[key], anchors: S[key].anchors.map(mirrorAnchor) });
+const pair = (key, stone = false) => [sideA(key, stone), sideB(key, stone)];
 const center = (id, anchors) => ({ id, side: 'c', anchors, inset: 0, toward: 168 });
 
 // ── Piedra Gua Sha ─────────────────────────────────────────────────────────
-// Qué parte de la piedra trabaja en cada zona. La piedra se dibuja con ese
-// borde por delante, en el sentido del movimiento.
 export const EDGES = {
   long: { label: 'Borde largo' },
   notch: { label: 'Hendidura en V' },
   lobe: { label: 'Curva pequeña' },
 };
 
-// ── Ritual: preparación + 6 zonas + cierre, 15 s cada una ──────────────────
-// Orden de abajo arriba (cuello → frente), el habitual en Gua Sha.
-export const RITUAL = [
+// ── Respiración: 4 s inspirar, 6 s espirar (≈ 6 respiraciones por minuto) ──
+export const BREATH = { inhale: 4, exhale: 6 };
+
+const WARMUP_NOTE = 'Movimientos **lentos y sin forzar**. Si notas **dolor o mareo**, detente.';
+
+// ── Ritual ─────────────────────────────────────────────────────────────────
+// seconds: duración del paso. sides: el paso se divide en dos mitades,
+// primero el lado derecho y después el izquierdo.
+const STEPS = [
+  // Calentamiento de cuello (2 min)
   {
-    key: 'prep',
-    title: 'Prepara la piel',
-    text: 'Calienta 3 o 4 gotas de escualano de oliva entre las palmas y presiónalas sobre rostro y cuello.',
-    overlay: 'drops',
-    tool: null,
-    note: 'Sujeta la piedra casi plana, inclinada unos 15°.',
+    section: 'Calentamiento',
+    title: 'Flexión de cuello',
+    text: 'Lleva **la barbilla hacia el pecho** despacio, mantén **unos segundos** y vuelve al centro.',
+    note: WARMUP_NOTE,
+    strokes: pair('arcDown'),
+    period: 3,
+    seconds: 20,
   },
   {
-    key: 'neck',
+    section: 'Calentamiento',
+    title: 'Extensión de cuello',
+    text: '**Mira hacia arriba** sin echar la cabeza atrás del todo, mantén **unos segundos** y vuelve al centro.',
+    note: WARMUP_NOTE,
+    strokes: pair('arcUp'),
+    period: 3,
+    seconds: 20,
+  },
+  {
+    section: 'Calentamiento',
+    title: 'Inclinación lateral',
+    text: 'Lleva **la oreja hacia el hombro** sin subir el hombro. **Mantén** y cambia de lado.',
+    note: WARMUP_NOTE,
+    moves: [
+      { side: 'a', label: 'Hacia la derecha', strokes: [sideA('tilt')], seconds: 15 },
+      { side: 'b', label: 'Hacia la izquierda', strokes: [sideB('tilt')], seconds: 15 },
+    ],
+    period: 3,
+  },
+  {
+    section: 'Calentamiento',
+    title: 'Rotación de cuello',
+    text: '**Gira la cabeza** despacio para mirar **por encima del hombro**. Alterna ambos lados.',
+    note: WARMUP_NOTE,
+    moves: [
+      { side: 'a', label: 'Hacia la derecha', strokes: [sideA('turn')], seconds: 10 },
+      { side: 'b', label: 'Hacia la izquierda', strokes: [sideB('turn')], seconds: 10 },
+    ],
+    period: 2.6,
+  },
+  {
+    section: 'Calentamiento',
+    title: 'Estiramiento del trapecio',
+    text: 'Apoya **la mano sobre la cabeza** y deja que su peso **incline la oreja hacia el hombro**. Sin tirar.',
+    note: WARMUP_NOTE,
+    moves: [
+      { side: 'a', label: 'Lado derecho', strokes: [sideA('tilt')], seconds: 15 },
+      { side: 'b', label: 'Lado izquierdo', strokes: [sideB('tilt')], seconds: 15 },
+    ],
+    period: 3,
+  },
+
+  // Respiración (1 min)
+  {
+    section: 'Respiración',
+    title: 'Respiración consciente',
+    text: '**Inspira por la nariz** mientras el círculo se llena y **espira despacio** mientras se vacía.',
+    note: '**4 segundos** para inspirar, **6 segundos** para espirar.',
+    overlay: 'breath',
+    seconds: 60,
+  },
+
+  // Ritual Gua Sha (7 min)
+  {
+    section: 'Ritual Gua Sha',
+    title: 'Prepara la piel',
+    text: 'Calienta **3 o 4 gotas** de **escualano de oliva** o **Facial Oil de OLIVYX** entre las palmas y **presiónalas** sobre rostro y cuello.',
+    note: 'Sujeta la piedra **casi plana**, inclinada unos **15°**.',
+    overlay: 'drops',
+    seconds: 20,
+  },
+  {
+    section: 'Ritual Gua Sha',
     title: 'Cuello',
-    text: 'Desliza desde la base del cuello hacia la mandíbula, con pasadas lentas.',
+    text: 'Desliza desde la **base del cuello** hacia la **mandíbula**, con **pasadas lentas**.',
     strokes: [center('neck-c', [D(152, 10, 152, 0.42), D(152, 10, 152, 0.08)]), ...pair('neck', true), ...pair('neckOuter')],
     period: 2.4,
     tool: { edge: 'long', dir: 'de abajo arriba', travel: 'up' },
+    seconds: 60,
+    sides: true,
   },
   {
-    key: 'jaw',
+    section: 'Ritual Gua Sha',
     title: 'Contorno de la mandíbula',
-    text: 'Abraza la mandíbula con la hendidura y desliza desde la barbilla hasta la oreja.',
+    text: '**Abraza la mandíbula** con la hendidura y desliza desde la **barbilla** hasta la **oreja**.',
     strokes: pair('jaw', true),
     period: 2.4,
     tool: { edge: 'notch', dir: 'de la barbilla a la oreja', travel: 'out' },
+    seconds: 60,
+    sides: true,
   },
   {
-    key: 'smile',
+    section: 'Ritual Gua Sha',
     title: 'Zona de la sonrisa',
-    text: 'Desde la comisura y la aleta de la nariz, hacia la oreja.',
+    text: 'Desde la **comisura** y la **aleta de la nariz**, hacia la **oreja**.',
     strokes: [...pair('smileLow', true), ...pair('smileHigh')],
     period: 2.2,
     tool: { edge: 'long', dir: 'hacia la oreja', travel: 'out' },
+    seconds: 60,
+    sides: true,
   },
   {
-    key: 'eyes',
+    section: 'Ritual Gua Sha',
     title: 'Contorno de ojos',
-    text: 'Del lagrimal hacia la sien, por debajo del ojo. Casi sin presión: aquí la piel es muy fina.',
+    text: 'Del **lagrimal** hacia la **sien**, por debajo del ojo. **Casi sin presión**: aquí la piel es muy fina.',
     strokes: pair('underEye', true),
     period: 2.6,
     tool: { edge: 'lobe', dir: 'del lagrimal a la sien', travel: 'out' },
+    seconds: 60,
+    sides: true,
   },
   {
-    key: 'brows',
+    section: 'Ritual Gua Sha',
     title: 'Cejas',
-    text: 'Abraza la ceja con la hendidura y deslízala desde su inicio hacia la sien.',
+    text: '**Abraza la ceja** con la hendidura y deslízala desde su **inicio** hacia la **sien**.',
     strokes: pair('brow', true),
     period: 2.2,
     tool: { edge: 'notch', dir: 'hacia la sien', travel: 'out' },
+    seconds: 60,
+    sides: true,
   },
   {
-    key: 'forehead',
+    section: 'Ritual Gua Sha',
     title: 'Frente',
-    text: 'Desde las cejas hacia el nacimiento del pelo, con movimientos cortos y ligeros.',
+    text: 'Desde las **cejas** hacia el **nacimiento del pelo**, con movimientos **cortos y ligeros**.',
     strokes: [center('forehead-c', [B(9, 151, 0.2), B(9, 10, 0.86)]), ...pair('foreheadUp', true), ...pair('foreheadUpOuter')],
     period: 1.8,
     tool: { edge: 'long', dir: 'hacia arriba', travel: 'up' },
+    seconds: 60,
+    sides: true,
   },
+
+  // Cierre
   {
-    key: 'finish',
+    section: 'Cierre',
     title: 'Finaliza el ritual',
-    text: 'Lleva las palmas al rostro, presiona con suavidad y respira. Limpia la piedra antes de guardarla.',
-    overlay: 'oval',
-    tool: null,
+    text: 'Lleva las **palmas al rostro**, presiona con suavidad y **respira**. **Limpia la piedra** antes de guardarla.',
     note: 'La piel reconoce lo que le pertenece.',
+    overlay: 'oval',
+    seconds: 20,
   },
 ];
+
+// Normaliza: cada paso tiene `moves` y `seconds`.
+export const RITUAL = STEPS.map((step) => {
+  let moves = step.moves;
+  if (!moves && step.sides) {
+    moves = [
+      { side: 'a', label: 'Lado derecho', strokes: step.strokes, seconds: step.seconds / 2 },
+      { side: 'b', label: 'Lado izquierdo', strokes: step.strokes, seconds: step.seconds / 2 },
+    ];
+  }
+  if (!moves) moves = [{ side: null, label: '', strokes: step.strokes || [], seconds: step.seconds }];
+  const seconds = moves.reduce((s, mv) => s + mv.seconds, 0);
+  return { ...step, moves, seconds };
+});
+
+export const SECTIONS = [...new Set(RITUAL.map((s) => s.section))];
+export const TOTAL_SECONDS = RITUAL.reduce((s, st) => s + st.seconds, 0);
 
 /** Índices que hay que seguir y suavizar. */
 export function requiredIndices() {
@@ -185,17 +260,17 @@ export function requiredIndices() {
     else if ('base' in a) { set.add(a.base); set.add(a.from); set.add(a.to); }
     else { set.add(a.a); set.add(a.b); }
   };
-  RITUAL.forEach((step) => (step.strokes || []).forEach((s) => {
+  RITUAL.forEach((step) => step.moves.forEach((mv) => mv.strokes.forEach((s) => {
     s.anchors.forEach(add);
     set.add(s.toward);
-  }));
+  })));
   return [...set];
 }
 
 /** Convierte un trazo en puntos de pantalla. Devuelve null si falta algún punto. */
 export function resolveStroke(stroke, face) {
   const c = face.get(stroke.toward);
-  const out = [];
+  const pts = [];
   for (const a of stroke.anchors) {
     let p;
     if (typeof a === 'number') {
@@ -215,7 +290,13 @@ export function resolveStroke(stroke, face) {
       p.x += (c.x - p.x) * stroke.inset;
       p.y += (c.y - p.y) * stroke.inset;
     }
-    out.push(p);
+    pts.push(p);
   }
-  return out;
+  return pts;
+}
+
+/** Convierte **palabras** en <strong>, escapando el resto del texto. */
+export function emphasize(text) {
+  const esc = text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  return esc.replace(/\*\*(.+?)\*\*/g, '<strong class="kw">$1</strong>');
 }
