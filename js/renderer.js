@@ -2,7 +2,7 @@
 // marcando el sentido y el ritmo del movimiento, y la piedra Gua Sha
 // deslizándose con la parte de trabajo por delante.
 
-import { STONE_PATH, STONE_EDGES, STONE_WIDTH, STONE_HEIGHT } from './stone.js?v=20261119d';
+import { STONE_PATH, STONE_EDGES, STONE_WIDTH, STONE_HEIGHT } from './stone.js?v=20261119e';
 
 const CREAM = '246, 241, 228';
 const LIGHT = '255, 248, 226';
@@ -286,74 +286,90 @@ export class Renderer {
     ctx.restore();
   }
 
-  /** Puntos faciales: halo rojo, núcleo luminoso y ondas que se expanden. */
+  /** Puntos faciales: verde salvia corporativo, núcleo luminoso y ondas. */
   pulses(points, t, { alpha, r }) {
     const c = this.ctx;
+    const GREEN = '186, 196, 132';     // verde claro (salvia OLIVYX)
+    const DEEP = '62, 72, 39';         // verde oliva para dar contraste sobre la piel
     points.forEach((p, i) => {
-      // ondas
       for (const k of [0, 0.33, 0.66]) {
         const q = (t * 0.6 + k) % 1;
         c.beginPath();
         c.arc(p.x, p.y, r * (0.9 + q * 2.4), 0, Math.PI * 2);
-        c.strokeStyle = `rgba(230, 70, 56, ${(1 - q) * 0.7 * alpha})`;
-        c.lineWidth = 2 * (1 - q) + 0.6;
+        c.strokeStyle = `rgba(${GREEN}, ${(1 - q) * 0.85 * alpha})`;
+        c.lineWidth = 2.2 * (1 - q) + 0.6;
         c.stroke();
       }
       const breathe = 0.85 + 0.15 * Math.sin((t + i * 0.5) * 3.4);
-      // halo
       const g = c.createRadialGradient(p.x, p.y, 0, p.x, p.y, r * 2.2);
-      g.addColorStop(0, `rgba(240, 80, 60, ${0.75 * breathe * alpha})`);
-      g.addColorStop(0.35, `rgba(230, 70, 56, ${0.45 * breathe * alpha})`);
-      g.addColorStop(1, 'rgba(230, 70, 56, 0)');
+      g.addColorStop(0, `rgba(${GREEN}, ${0.8 * breathe * alpha})`);
+      g.addColorStop(0.4, `rgba(${GREEN}, ${0.4 * breathe * alpha})`);
+      g.addColorStop(1, `rgba(${GREEN}, 0)`);
       c.fillStyle = g;
       c.beginPath();
       c.arc(p.x, p.y, r * 2.2, 0, Math.PI * 2);
       c.fill();
-      // núcleo
       c.beginPath();
       c.arc(p.x, p.y, r * 0.55 * breathe, 0, Math.PI * 2);
-      c.fillStyle = `rgba(255, 236, 224, ${0.95 * alpha})`;
+      c.fillStyle = `rgba(250, 248, 236, ${0.95 * alpha})`;
       c.fill();
-      c.lineWidth = 1.5;
-      c.strokeStyle = `rgba(230, 70, 56, ${alpha})`;
+      c.lineWidth = 2;
+      c.strokeStyle = `rgba(${DEEP}, ${0.9 * alpha})`;
       c.stroke();
     });
   }
 
-  /** Piedra girando 360° sobre sí misma, con brillo y burbujas de agua. */
-  spinStone(center, height, t, alpha) {
+  /** Una pompa de jabón: transparente, con reflejos irisados y un brillo. */
+  bubble(x, y, r, a) {
+    const c = this.ctx;
+    const g = c.createRadialGradient(x - r * 0.3, y - r * 0.3, r * 0.1, x, y, r);
+    g.addColorStop(0, `rgba(255, 255, 255, ${0.05 * a})`);
+    g.addColorStop(0.75, `rgba(220, 235, 255, ${0.12 * a})`);
+    g.addColorStop(0.92, `rgba(255, 210, 235, ${0.35 * a})`);
+    g.addColorStop(1, `rgba(200, 240, 220, ${0.5 * a})`);
+    c.fillStyle = g;
+    c.beginPath();
+    c.arc(x, y, r, 0, Math.PI * 2);
+    c.fill();
+    c.lineWidth = 1;
+    c.strokeStyle = `rgba(255, 255, 255, ${0.55 * a})`;
+    c.stroke();
+    c.beginPath();
+    c.arc(x, y, r * 0.68, Math.PI * 1.1, Math.PI * 1.45);
+    c.strokeStyle = `rgba(255, 255, 255, ${0.85 * a})`;
+    c.lineWidth = Math.max(1, r * 0.12);
+    c.lineCap = 'round';
+    c.stroke();
+  }
+
+  /**
+   * La piedra tumbada bajo el rostro, meciéndose suavemente sobre espuma,
+   * con pompas de jabón que suben y se desvanecen.
+   */
+  soapStone(center, width, t, alpha) {
     this.ensureStone();
     const c = this.ctx;
-    const s = height / STONE_HEIGHT;
-    const ang = (t / 4) * Math.PI * 2;          // una vuelta cada 4 s
-    // burbujas que suben alrededor
-    for (let i = 0; i < 9; i++) {
-      const q = (t * 0.28 + i / 9) % 1;
-      const bx = center.x + Math.sin(i * 2.3 + t * 0.8) * height * 0.55;
-      const by = center.y + height * 0.55 - q * height * 1.2;
-      c.beginPath();
-      c.arc(bx, by, 2 + (i % 3) * 1.5, 0, Math.PI * 2);
-      c.strokeStyle = `rgba(${CREAM}, ${Math.sin(q * Math.PI) * 0.6 * alpha})`;
-      c.lineWidth = 1;
-      c.stroke();
+    const s = width / STONE_HEIGHT;            // tumbada: el alto pasa a ser el ancho
+    // espuma bajo la piedra
+    for (let i = 0; i < 16; i++) {
+      const fx = center.x + (i / 15 - 0.5) * width * 1.15 + Math.sin(i * 7.1) * width * 0.04;
+      const fy = center.y + width * 0.2 + Math.sin(i * 3.3) * width * 0.04;
+      const fr = width * (0.035 + 0.03 * ((i * 37) % 5) / 5) * (1 + 0.08 * Math.sin(t * 2 + i));
+      this.bubble(fx, fy, fr, alpha * 0.9);
     }
+    // piedra
     c.save();
-    c.translate(center.x, center.y);
-    c.rotate(ang);
+    c.translate(center.x, center.y + Math.sin(t * 1.4) * width * 0.02);
+    c.rotate(Math.PI / 2 + Math.sin(t * 0.9) * 0.08);
     c.scale(s, s);
-    c.fillStyle = `rgba(62, 72, 39, ${0.6 * alpha})`;
+    c.fillStyle = `rgba(62, 72, 39, ${0.62 * alpha})`;
     c.fill(this.stonePath);
     c.lineWidth = 2 / s;
     c.strokeStyle = `rgba(${CREAM}, ${0.9 * alpha})`;
     c.stroke(this.stonePath);
-    c.lineWidth = 4 / s;
-    c.lineCap = 'round';
-    c.strokeStyle = `rgba(${LIGHT}, ${0.9 * alpha})`;
-    c.stroke(this.edgePaths.long);
-    // brillo que la recorre
     c.save();
     c.clip(this.stonePath);
-    const sx = ((t * 0.45) % 1) * 240 - 120;
+    const sx = ((t * 0.3) % 1) * 240 - 120;
     const g = c.createLinearGradient(sx - 30, -80, sx + 30, 80);
     g.addColorStop(0, 'rgba(255, 248, 226, 0)');
     g.addColorStop(0.5, `rgba(255, 248, 226, ${0.4 * alpha})`);
@@ -362,93 +378,69 @@ export class Renderer {
     c.fillRect(-90, -100, 180, 200);
     c.restore();
     c.restore();
+    // pompas que suben y se desvanecen antes de llegar al rostro
+    for (let i = 0; i < 10; i++) {
+      const q = (t * 0.22 + i / 10) % 1;
+      const bx = center.x + (((i * 53) % 10) / 9 - 0.5) * width * 1.1 + Math.sin(t * 1.3 + i) * width * 0.05;
+      const by = center.y + width * 0.1 - q * width * 0.9;
+      const br = width * (0.03 + ((i * 29) % 4) * 0.015);
+      this.bubble(bx, by, br, alpha * Math.sin(q * Math.PI));
+    }
   }
 
   /**
-   * Líneas que estilizan el rostro (mandíbula, pómulos, patas de gallo, frente)
-   * con resplandor dorado, una luz que las recorre y destellos.
+   * Brillo en la piel: luz suave en pómulos y destellos que titilan
+   * (puntos finos y estrellas de cuatro puntas), como un iluminador.
+   * @param zones [{ x, y, spread, glow }]
    */
-  sculpt(lines, sparkles, center, faceH, t, alpha) {
+  glitter(zones, t, alpha) {
     const c = this.ctx;
-    // resplandor general muy suave
+    // luz suave
     c.save();
     c.globalCompositeOperation = 'screen';
-    const bloom = c.createRadialGradient(center.x, center.y, 0, center.x, center.y, faceH * 0.9);
-    bloom.addColorStop(0, `rgba(255, 226, 170, ${0.16 * alpha})`);
-    bloom.addColorStop(1, 'rgba(255, 226, 170, 0)');
-    c.fillStyle = bloom;
-    c.fillRect(center.x - faceH, center.y - faceH, faceH * 2, faceH * 2);
-    c.restore();
-
-    c.lineCap = 'round';
-    c.lineJoin = 'round';
-    lines.forEach((anchors, i) => {
-      const pts = spline(anchors, 10);
-      const L = measure(pts);
-      const total = L[L.length - 1];
-      if (total < 4) return;
-      const a = alpha * (0.8 + 0.2 * Math.sin(t * 1.5 + i));
-      c.save();
-      c.globalCompositeOperation = 'screen';
-      this.polyline(pts);
-      c.shadowColor = `rgba(255, 210, 140, ${0.9 * a})`;
-      c.shadowBlur = 14;
-      c.strokeStyle = `rgba(255, 222, 165, ${0.4 * a})`;
-      c.lineWidth = 4;
-      c.stroke();
-      c.restore();
-      this.polyline(pts);
-      c.strokeStyle = `rgba(255, 249, 232, ${0.9 * a})`;
-      c.lineWidth = 1.3;
-      c.stroke();
-      // luz que recorre la línea
-      const q = (t * 0.35 + i * 0.17) % 1;
-      const hp = pointAt(pts, L, q * total);
-      const g = c.createRadialGradient(hp.x, hp.y, 0, hp.x, hp.y, 10);
-      g.addColorStop(0, `rgba(255, 252, 240, ${Math.sin(q * Math.PI) * a})`);
-      g.addColorStop(1, 'rgba(255, 252, 240, 0)');
+    zones.forEach((z) => {
+      if (!z.glow) return;
+      const g = c.createRadialGradient(z.x, z.y, 0, z.x, z.y, z.spread * 1.6);
+      g.addColorStop(0, `rgba(255, 246, 228, ${0.32 * alpha})`);
+      g.addColorStop(1, 'rgba(255, 246, 228, 0)');
       c.fillStyle = g;
       c.beginPath();
-      c.arc(hp.x, hp.y, 10, 0, Math.PI * 2);
+      c.arc(z.x, z.y, z.spread * 1.6, 0, Math.PI * 2);
       c.fill();
     });
-    // destellos de cuatro puntas
-    sparkles.forEach((p, i) => {
-      const tw = Math.max(0, Math.sin(t * 1.8 + i * 1.9));
-      const r = 9 * (0.5 + tw * 0.7);
-      c.save();
-      c.translate(p.x, p.y);
-      c.rotate(Math.PI / 4 * (i % 2));
-      c.fillStyle = `rgba(255, 250, 235, ${tw * alpha})`;
-      c.shadowColor = 'rgba(255, 215, 150, 0.9)';
-      c.shadowBlur = 10;
-      c.beginPath();
-      c.moveTo(0, -r); c.quadraticCurveTo(0, 0, r, 0); c.quadraticCurveTo(0, 0, 0, r);
-      c.quadraticCurveTo(0, 0, -r, 0); c.quadraticCurveTo(0, 0, 0, -r);
-      c.fill();
-      c.restore();
+    c.restore();
+    // destellos con posiciones pseudoaleatorias fijas por zona
+    zones.forEach((z, zi) => {
+      const n = z.count || 10;
+      for (let k = 0; k < n; k++) {
+        const seed = zi * 97 + k * 13.37;
+        const rnd = (m) => { const v = Math.sin(seed * m) * 43758.5453; return v - Math.floor(v); };
+        const ang = rnd(1.1) * Math.PI * 2;
+        const rad = Math.sqrt(rnd(2.3)) * z.spread;
+        const x = z.x + Math.cos(ang) * rad * 1.3;
+        const y = z.y + Math.sin(ang) * rad * 0.8;
+        const tw = Math.pow(Math.max(0, Math.sin(t * (1.6 + rnd(3.7) * 1.8) + rnd(5.9) * 6.28)), 2);
+        if (tw < 0.02) continue;
+        if (k % 3 === 0) {
+          const r = (6 + rnd(7.7) * 8) * tw;
+          c.save();
+          c.translate(x, y);
+          c.fillStyle = `rgba(255, 252, 240, ${tw * alpha})`;
+          c.shadowColor = 'rgba(255, 240, 210, 0.9)';
+          c.shadowBlur = 8;
+          c.beginPath();
+          c.moveTo(0, -r); c.quadraticCurveTo(0, 0, r * 0.7, 0); c.quadraticCurveTo(0, 0, 0, r);
+          c.quadraticCurveTo(0, 0, -r * 0.7, 0); c.quadraticCurveTo(0, 0, 0, -r);
+          c.fill();
+          c.restore();
+        } else {
+          c.beginPath();
+          c.arc(x, y, 1 + tw * 2, 0, Math.PI * 2);
+          c.fillStyle = `rgba(255, 250, 235, ${0.9 * tw * alpha})`;
+          c.fill();
+        }
+      }
     });
-  }
-
-  /**
-   * Líneas sensoriales: contornos del rostro concéntricos que respiran,
-   * hacia dentro y hacia fuera, como un aura topográfica.
-   * @param rings  [{ pts, alpha }]
-   */
-  aura(rings, alpha) {
-    const c = this.ctx;
-    c.lineCap = 'round';
-    c.lineJoin = 'round';
-    for (const ring of rings) {
-      const pts = spline([...ring.pts, ring.pts[0], ring.pts[1]], 6);
-      this.polyline(pts);
-      c.strokeStyle = `rgba(232, 214, 160, ${0.12 * ring.alpha * alpha})`;
-      c.lineWidth = 4;
-      c.stroke();
-      c.strokeStyle = `rgba(${LIGHT}, ${0.6 * ring.alpha * alpha})`;
-      c.lineWidth = 1;
-      c.stroke();
-    }
   }
 
   debug(face, labels) {

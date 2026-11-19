@@ -22,7 +22,7 @@ export const PAIRS = [
   [234, 454], [93, 323], [132, 361], [58, 288], [172, 397], [136, 365],
   [150, 379], [149, 378], [176, 400], [148, 377],
   [127, 356], [162, 389], [21, 251], [54, 284], [103, 332], [67, 297], [109, 338],
-  [70, 300], [63, 293], [105, 334], [66, 296], [107, 336], [55, 285], [46, 276],
+  [70, 300], [63, 293], [105, 334], [66, 296], [4, 4], [6, 6], [107, 336], [55, 285], [46, 276],
   [129, 358], [50, 280], [116, 345], [123, 352], [205, 425],
   [108, 337], [69, 299], [104, 333],
 ];
@@ -86,24 +86,21 @@ export const POINT_GROUPS = [
   { label: 'Cuello', points: twin(P(D(132, 10, 152, 0.4), 0.2, 152)) },
 ];
 
-// ── Líneas que estilizan el rostro en «Comparte tu ritual» ────────────────
-const L = (anchors, inset = 0, toward = 1) => ({ anchors, inset, toward });
-const SCULPT_A = [
-  L([B(152, 148, 0.6), 176, 149, 150, 136, 172, 58, B(132, 93, 0.4)], 0.035),     // mandíbula
-  L([B(129, 133, 0.45), B(116, 50, 0.25), B(234, 127, 0.55)], 0.02),               // pómulo
-  L([B(33, 162, 0.22), B(33, 162, 0.58)]),                                          // patas de gallo
-  L([B(33, 127, 0.22), B(33, 127, 0.62)]),
-  L([B(33, 234, 0.22), B(33, 234, 0.55)]),
+// ── Brillo en la piel para «Comparte tu ritual» ──────────────────────────
+// Zonas donde se coloca la luz, como un iluminador: pómulos, arco de la ceja,
+// tabique, frente y barbilla. spread = radio relativo al ancho del rostro.
+const Z = (anchor, spread, count, glow = false) => ({ anchors: [anchor], inset: 0, toward: 1, spread, count, glow });
+const GLOW_A = [
+  Z(B(116, 50, 0.35), 0.12, 24, true),   // pómulo
+  Z(B(105, 66, 0.5), 0.05, 7),           // arco de la ceja
 ];
-export const SCULPT = [
-  ...SCULPT_A.map((l) => ({ side: 'a', ...l })),
-  ...SCULPT_A.map((l) => ({ side: 'b', ...l, anchors: l.anchors.map(mirrorAnchor) })),
-  // frente: dos arcos de sien a sien
-  { side: 'c', ...L([B(70, 54, 0.4), B(105, 67, 0.5), B(9, 10, 0.5), B(334, 297, 0.5), B(300, 284, 0.4)]) },
-  { side: 'c', ...L([B(70, 54, 0.7), B(105, 67, 0.78), B(9, 10, 0.75), B(334, 297, 0.78), B(300, 284, 0.7)]) },
+export const GLOW_ZONES = [
+  ...GLOW_A.map((z) => ({ side: 'a', ...z })),
+  ...GLOW_A.map((z) => ({ side: 'b', ...z, anchors: z.anchors.map(mirrorAnchor) })),
+  { side: 'c', ...Z(B(6, 4, 0.5), 0.035, 5) },      // tabique
+  { side: 'c', ...Z(B(151, 9, 0.3), 0.08, 6) },     // frente
+  { side: 'c', ...Z(B(17, 152, 0.55), 0.04, 4) },   // barbilla
 ];
-// Destellos: inicio de ceja (arco), pómulo alto y barbilla
-export const SPARKLES = [P(B(105, 66, 0.5), -0.06, 1), P(B(116, 123, 0.5)), P(B(345, 352, 0.5)), P(B(17, 152, 0.55))];
 
 // ── Bloques del ritual ─────────────────────────────────────────────────────
 export const BLOCKS = {
@@ -290,7 +287,7 @@ const STEPS = [
   {
     section: 'Estimulación de puntos faciales',
     title: 'Comparte tu ritual',
-    text: 'Pulsa la **cámara** para crear tu **imagen del ritual** y **compártela** en tus redes sociales.',
+    text: 'Pulsa la **cámara** para crear tu **imagen del ritual** y **compártela** en tus redes sociales mencionando a **@olivyx.es**.',
     note: 'La imagen se crea **en tu móvil** y solo se comparte si tú lo decides.',
     overlay: 'aura',
     share: true,
@@ -328,7 +325,7 @@ export function requiredIndices() {
     set.add(s.toward);
   })));
   RITUAL.forEach((step) => step.moves.forEach((mv) => (mv.points || []).forEach((p) => { p.anchors.forEach(add); set.add(p.toward); })));
-  [...SCULPT, ...SPARKLES].forEach((p) => { p.anchors.forEach(add); set.add(p.toward); });
+  GLOW_ZONES.forEach((p) => { p.anchors.forEach(add); set.add(p.toward); });
   return [...set];
 }
 

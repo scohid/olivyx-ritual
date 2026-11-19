@@ -9,7 +9,7 @@
   <link rel="icon" href="assets/favicon.svg" type="image/svg+xml" />
   <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
   <link rel="preload" href="assets/fonts/Poppins-Light.woff" as="font" type="font/woff" crossorigin />
-  <link rel="stylesheet" href="css/styles.css?v=20261119d" />
+  <link rel="stylesheet" href="css/styles.css?v=20261119e" />
 </head>
 <body data-screen="intro">
 
@@ -124,7 +124,10 @@
       <h2 class="block-title" id="block-title"></h2>
       <p class="block-meta" id="block-meta"></p>
       <p class="step-text block-text" id="block-text"></p>
-      <ol class="block-list" id="block-list"></ol>
+      <div class="block-ticker" id="block-ticker" aria-live="off">
+        <div class="tick" id="tick"><span class="tick-num" id="tick-num"></span><span class="tick-name" id="tick-name"></span></div>
+      </div>
+      <div class="tick-dots" id="tick-dots" aria-hidden="true"></div>
       <div class="info-actions">
         <button class="btn btn-light" id="btn-block" type="button">Continuar</button>
       </div>
@@ -192,11 +195,11 @@
   <script>
     window.addEventListener('load', function () {
       setTimeout(function () {
-        var bad = window.__OLIVYX_VERSION !== '20261119d' || document.documentElement.dataset.versionError;
+        var bad = window.__OLIVYX_VERSION !== '20261119e' || document.documentElement.dataset.versionError;
         if (bad) document.getElementById('version-alert').hidden = false;
       }, 1500);
     });
   </script>
-  <script type="module" src="js/app.js?v=20261119d"></script>
+  <script type="module" src="js/app.js?v=20261119e"></script>
 </body>
 </html>

@@ -1,14 +1,14 @@
-import { startCamera, stopCamera, checkSupport, describeCameraError, isInAppBrowser } from './camera.js?v=20261119d';
-import { createTracker } from './tracker.js?v=20261119d';
-import { FaceState, makeMapper } from './faceState.js?v=20261119d';
-import { Renderer } from './renderer.js?v=20261119d';
+import { startCamera, stopCamera, checkSupport, describeCameraError, isInAppBrowser } from './camera.js?v=20261119e';
+import { createTracker } from './tracker.js?v=20261119e';
+import { FaceState, makeMapper } from './faceState.js?v=20261119e';
+import { Renderer } from './renderer.js?v=20261119e';
 import {
-  RITUAL, SECTIONS, BLOCKS, BREATH, EDGES, FACE_OVAL, SCULPT, SPARKLES,
+  RITUAL, SECTIONS, BLOCKS, BREATH, EDGES, FACE_OVAL, GLOW_ZONES,
   requiredIndices, resolveStroke, emphasize,
-} from './ritual.js?v=20261119d';
-import { stoneIcon } from './stone.js?v=20261119d';
+} from './ritual.js?v=20261119e';
+import { stoneIcon } from './stone.js?v=20261119e';
 
-const VERSION = '20261119d';
+const VERSION = '20261119e';
 const $ = (s) => document.querySelector(s);
 const params = new URLSearchParams(location.search);
 const DEBUG = params.has('debug');
@@ -48,7 +48,10 @@ const el = {
   blockTitle: $('#block-title'),
   blockMeta: $('#block-meta'),
   blockText: $('#block-text'),
-  blockList: $('#block-list'),
+  tick: $('#tick'),
+  tickNum: $('#tick-num'),
+  tickName: $('#tick-name'),
+  tickDots: $('#tick-dots'),
   blockBtn: $('#btn-block'),
   // barra compacta
   sheet: $('#sheet'),
@@ -173,6 +176,7 @@ async function begin() {
 }
 
 function exit() {
+  stopTicker();
   state.running = false;
   stopCamera(state.stream);
   state.stream = null;
@@ -231,7 +235,8 @@ function goToStep(i) {
   const step = RITUAL[state.step];
   const block = blockOf(state.step);
   const inBlock = stepsOfBlock(block);
-  const eyebrow = `Paso ${inBlock.indexOf(state.step) + 1} de ${inBlock.length} · ${step.section}`;
+  const stepLabel = `Paso ${inBlock.indexOf(state.step) + 1} de ${inBlock.length}`;
+  const eyebrow = step.title === step.section ? stepLabel : `${stepLabel} · ${step.section}`;
 
   // Ficha completa
   el.infoEyebrow.textContent = eyebrow;
@@ -280,18 +285,49 @@ function openBlock(b) {
   el.blockTitle.textContent = name;
   el.blockMeta.textContent = `${steps.length} ${steps.length === 1 ? 'paso' : 'pasos'} · ${secs >= 60 ? `${Math.round(secs / 60)} min` : `${secs} s`}`;
   el.blockText.innerHTML = emphasize(BLOCKS[name] || '');
-  el.blockList.innerHTML = steps.length > 1
-    ? steps.map((i) => `<li>${RITUAL[i].title}</li>`).join('')
-    : '';
-  el.blockList.hidden = steps.length <= 1;
+  startTicker(steps);
   state.panel = 'block';
   state.playing = false;
   document.body.dataset.panel = 'block';
   syncPlay();
 }
 
+/** Pasos del bloque de uno en uno: el actual baja y desaparece, sube el siguiente. */
+let tickTimer = null;
+function startTicker(steps) {
+  stopTicker();
+  el.tickDots.innerHTML = steps.length > 1 ? steps.map(() => '<span></span>').join('') : '';
+  const dots = [...el.tickDots.children];
+  let k = 0;
+  const showTick = () => {
+    const i = steps[k];
+    el.tickNum.textContent = String(k + 1).padStart(2, '0');
+    el.tickName.textContent = RITUAL[i].title;
+    dots.forEach((d, j) => d.classList.toggle('on', j === k));
+    el.tick.classList.remove('out', 'in');
+    void el.tick.offsetWidth;
+    el.tick.classList.add('in');
+  };
+  showTick();
+  if (steps.length < 2) return;
+  tickTimer = setInterval(() => {
+    el.tick.classList.remove('in');
+    void el.tick.offsetWidth;
+    el.tick.classList.add('out');
+    setTimeout(() => {
+      k = (k + 1) % steps.length;
+      if (tickTimer) showTick();
+    }, 450);
+  }, 2200);
+}
+function stopTicker() {
+  if (tickTimer) clearInterval(tickTimer);
+  tickTimer = null;
+}
+
 /** Muestra la ficha centrada y pausa el ejercicio. */
 function openInfo() {
+  stopTicker();
   state.panel = 'info';
   state.playing = false;
   el.continue.textContent = state.started ? 'Continuar' : 'Comenzar';
@@ -302,6 +338,7 @@ function openInfo() {
 
 /** Pliega la ficha hacia abajo y empieza (o reanuda) el contador. */
 function startRun() {
+  stopTicker();
   state.panel = 'run';
   state.started = true;
   state.playing = true;
@@ -461,8 +498,13 @@ function draw() {
   }
   if (step.overlay === 'spin') {
     if (state.panel === 'run') {
+      // Bajo el rostro, por encima de la barra inferior.
       const f = faceFrame();
-      renderer.spinStone({ x: f.x, y: f.y }, f.h * 0.62, state.anim, smooth(0, 0.8, state.anim));
+      const width = clamp(f.h * 0.62, 120, renderer.w * 0.62);
+      const sheetTop = el.sheet.getBoundingClientRect().top;
+      const below = f.y + f.h * 0.5 + width * 0.45;
+      const y = Math.min(below, sheetTop - width * 0.35);
+      renderer.soapStone({ x: f.x, y }, width, state.anim, smooth(0, 0.8, state.anim));
     }
     return;
   }
@@ -504,7 +546,7 @@ function draw() {
       if (r && vis[p.side] > 0.2) pts.push(r[0]);
     }
     const fade = state.panel === 'run' ? smooth(0, 0.6, elapsed) : 1;
-    renderer.pulses(pts, state.anim, { alpha: alpha * fade, r: clamp(faceW * 0.05, 9, 22) });
+    renderer.pulses(pts, state.anim, { alpha: alpha * fade, r: clamp(faceW * 0.07, 13, 30) });
     return;
   }
 
@@ -516,10 +558,13 @@ function draw() {
   }
 
   if (step.overlay === 'aura') {
-    const lines = SCULPT.map((l) => (vis[l.side] > 0.3 ? resolveStroke(l, face) : null)).filter(Boolean);
-    const sparkles = SPARKLES.map((p) => resolveStroke(p, face)).filter(Boolean).map((r) => r[0]);
-    const f = faceFrame();
-    renderer.sculpt(lines, sparkles, { x: f.x, y: f.y }, f.h, state.anim, alpha);
+    const zones = [];
+    for (const z of GLOW_ZONES) {
+      if (vis[z.side] < 0.3) continue;
+      const r = resolveStroke(z, face);
+      if (r) zones.push({ x: r[0].x, y: r[0].y, spread: z.spread * faceW, count: z.count, glow: z.glow });
+    }
+    renderer.glitter(zones, state.anim, alpha);
     return;
   }
 
@@ -602,25 +647,12 @@ async function captureImage() {
   // 2. Líneas sensoriales (el lienzo de la superposición)
   x.drawImage(el.canvas, 0, 0, cw, ch);
 
-  // 3. Tono cálido y viñeta suave
-  x.save();
-  x.globalCompositeOperation = 'soft-light';
-  x.fillStyle = 'rgba(255, 214, 160, 0.35)';
-  x.fillRect(0, 0, cw, ch);
-  x.restore();
-  const vg = x.createRadialGradient(cw / 2, ch * 0.4, ch * 0.25, cw / 2, ch * 0.45, ch * 0.75);
-  vg.addColorStop(0, 'rgba(20, 24, 12, 0)');
-  vg.addColorStop(1, 'rgba(20, 24, 12, 0.45)');
-  x.fillStyle = vg;
-  x.fillRect(0, 0, cw, ch);
-
-  // 4. Base: degradado verde OLIVYX para la firma
-  const g = x.createLinearGradient(0, ch * 0.6, 0, ch);
-  g.addColorStop(0, 'rgba(43, 51, 32, 0)');
-  g.addColorStop(0.55, 'rgba(43, 51, 32, 0.7)');
-  g.addColorStop(1, 'rgba(43, 51, 32, 0.92)');
+  // 3. Sombra neutra muy suave abajo, solo para que se lea la firma
+  const g = x.createLinearGradient(0, ch * 0.62, 0, ch);
+  g.addColorStop(0, 'rgba(0, 0, 0, 0)');
+  g.addColorStop(1, 'rgba(0, 0, 0, 0.55)');
   x.fillStyle = g;
-  x.fillRect(0, ch * 0.6, cw, ch * 0.4);
+  x.fillRect(0, ch * 0.66, cw, ch * 0.34);
 
   // 5. Marco fino editorial
   const m = cw * 0.04;
@@ -633,12 +665,14 @@ async function captureImage() {
   x.fillStyle = '#f3ede0';
   x.textAlign = 'center';
   x.textBaseline = 'alphabetic';
+  x.shadowColor = 'rgba(0, 0, 0, 0.35)';
+  x.shadowBlur = cw * 0.012;
 
   // «RITUAL FACIAL CON» + wordmark OLIVYX + claim
   const logo = await loadImage('assets/olivyx-logo-light.svg');
   const lw = cw * 0.5;
   const lh = lw * (logo.naturalHeight / logo.naturalWidth || 65 / 448);
-  const logoY = ch * 0.84;
+  const logoY = ch * 0.8;
   x.font = `400 ${Math.round(cw * 0.026)}px Poppins, "Helvetica Neue", sans-serif`;
   x.globalAlpha = 0.85;
   x.fillText(spaced('RITUAL FACIAL CON'), cw / 2, logoY - cw * 0.04);
@@ -654,6 +688,9 @@ async function captureImage() {
   x.globalAlpha = 0.85;
   x.fillText('La piel reconoce lo que le pertenece', cw / 2, ly + cw * 0.05);
   x.globalAlpha = 1;
+  // Instagram
+  x.font = `500 ${Math.round(cw * 0.032)}px Poppins, "Helvetica Neue", sans-serif`;
+  x.fillText('@olivyx.es', cw / 2, ly + cw * 0.12);
 
   // Arriba: nombre del taller
   x.font = `400 ${Math.round(cw * 0.022)}px Poppins, "Helvetica Neue", sans-serif`;
@@ -690,7 +727,7 @@ async function shareShot() {
     await navigator.share({
       files: [state.shot.file],
       title: 'Ritual facial con OLIVYX',
-      text: 'Mi ritual facial con OLIVYX',
+      text: 'Mi ritual facial con @olivyx.es',
     });
   } catch (e) {
     if (e && e.name !== 'AbortError') console.warn('[OLIVYX] compartir', e);

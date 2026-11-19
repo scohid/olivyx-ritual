@@ -16,12 +16,12 @@ Chrome (Android), sin instalar nada.
 | 1 · Calentamiento | Flexión, extensión, inclinación lateral, rotación, trapecio | 2 min |
 | 2 · Respiración | Inspirar 4 s · espirar 6 s, con círculo sobre el rostro | 1 min |
 | 3 · Piedra Gua Sha | Prepara la piel + cuello, mandíbula, sonrisa, ojos, cejas, frente (30 s por lado) | 6 min |
-| 4 · Estimulación de puntos faciales | Puntos por parejas (cejas, sienes, delante de las orejas, mandíbula, cuello; 12 s cada pareja), finaliza, limpia tu piedra (360°), comparte | 2 min |
+| 4 · Estimulación de puntos faciales | Puntos verdes por parejas (cejas, sienes, delante de las orejas, mandíbula, cuello; 12 s cada pareja), finaliza, limpia tu piedra (con pompas de jabón, bajo el rostro), comparte | 2 min |
 
 **Recorrido**
 
-1. Al entrar en cada bloque aparece su **portada** («Bloque 1 de 4 · Calentamiento»), con lo que
-   incluye y su duración → **Continuar**.
+1. Al entrar en cada bloque aparece su **portada** («Bloque 1 de 4 · Calentamiento») con su duración;
+   los pasos del bloque aparecen de uno en uno, en bucle → **Continuar**.
 2. Cada paso abre su **ficha centrada** («Paso 1 de 5 · Calentamiento») para leer con calma. El
    contador no corre. Solo hay un botón: **Comenzar**.
 3. Al pulsarlo, la ficha se pliega hacia abajo en una **barra compacta** (logo, paso, zona y
@@ -29,12 +29,12 @@ Chrome (Android), sin instalar nada.
 4. Al acabar el tiempo se abre la ficha del paso siguiente (o la portada del bloque siguiente).
 
 **Compartir:** el botón de cámara compone una imagen vertical en el propio móvil: cámara en espejo,
-líneas doradas que estilizan mandíbula, pómulos, patas de gallo y frente, marco fino, «Ritual
-facial con» + logotipo OLIVYX y el claim. En iOS y Android abre el menú de compartir del sistema.
+brillo en la piel (luz en pómulos y destellos), marco fino, «Ritual facial con» + logotipo OLIVYX,
+el claim y @olivyx.es. En iOS y Android abre el menú de compartir del sistema.
 
 - Palabras clave en negrita: en `js/ritual.js`, el texto entre `**dobles asteriscos**`.
 - Bloques y textos de portada: `BLOCKS`; pasos y duraciones: `STEPS`; respiración: `BREATH`;
-  puntos: `POINT_GROUPS`; líneas de compartir: `SCULPT`; forma de la piedra: `js/stone.js`.
+  puntos: `POINT_GROUPS`; brillo de compartir: `GLOW_ZONES`; forma de la piedra: `js/stone.js`.
 
 ## Publicar en GitHub Pages
 
