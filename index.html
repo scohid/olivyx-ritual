@@ -9,7 +9,7 @@
   <link rel="icon" href="assets/favicon.svg" type="image/svg+xml" />
   <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
   <link rel="preload" href="assets/fonts/Poppins-Light.woff" as="font" type="font/woff" crossorigin />
-  <link rel="stylesheet" href="css/styles.css?v=20261119c" />
+  <link rel="stylesheet" href="css/styles.css?v=20261119d" />
 </head>
 <body data-screen="intro">
 
@@ -113,13 +113,20 @@
       <p class="next-up" id="next-up"></p>
 
       <div class="info-actions">
-        <button class="icon-btn" id="info-prev" type="button" aria-label="Paso anterior">
-          <svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg>
-        </button>
         <button class="btn btn-light" id="btn-continue" type="button">Comenzar</button>
-        <button class="icon-btn" id="info-next" type="button" aria-label="Paso siguiente">
-          <svg viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></svg>
-        </button>
+      </div>
+    </section>
+
+    <!-- Portada de cada bloque -->
+    <section class="info-card block-card" id="block-card" aria-live="polite" aria-labelledby="block-title">
+      <img class="sheet-logo" src="assets/olivyx-logo-light.svg" alt="OLIVYX" />
+      <p class="block-kicker" id="block-kicker"></p>
+      <h2 class="block-title" id="block-title"></h2>
+      <p class="block-meta" id="block-meta"></p>
+      <p class="step-text block-text" id="block-text"></p>
+      <ol class="block-list" id="block-list"></ol>
+      <div class="info-actions">
+        <button class="btn btn-light" id="btn-block" type="button">Continuar</button>
       </div>
     </section>
 
@@ -185,11 +192,11 @@
   <script>
     window.addEventListener('load', function () {
       setTimeout(function () {
-        var bad = window.__OLIVYX_VERSION !== '20261119c' || document.documentElement.dataset.versionError;
+        var bad = window.__OLIVYX_VERSION !== '20261119d' || document.documentElement.dataset.versionError;
         if (bad) document.getElementById('version-alert').hidden = false;
       }, 1500);
     });
   </script>
-  <script type="module" src="js/app.js?v=20261119c"></script>
+  <script type="module" src="js/app.js?v=20261119d"></script>
 </body>
 </html>

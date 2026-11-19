@@ -9,39 +9,32 @@ Chrome (Android), sin instalar nada.
   envía a ningún servidor.
 - **Sin compilación:** HTML, CSS y JavaScript. Se publica tal cual en GitHub Pages.
 
-## Ritual: 17 pasos (≈ 11 minutos de ejercicio)
+## Ritual: 4 bloques
 
-| # | Sección | Paso | Duración |
-|---|---|---|---|
-| 1 | Calentamiento | Flexión de cuello | 20 s |
-| 2 | Calentamiento | Extensión de cuello | 20 s |
-| 3 | Calentamiento | Inclinación lateral (derecha / izquierda) | 2 × 15 s |
-| 4 | Calentamiento | Rotación de cuello (derecha / izquierda) | 2 × 10 s |
-| 5 | Calentamiento | Estiramiento del trapecio (derecha / izquierda) | 2 × 15 s |
-| 6 | Respiración | Inspirar 4 s · espirar 6 s, con círculo sobre el rostro | 60 s |
-| 7 | Ritual Gua Sha | Prepara la piel (escualano de oliva o Facial Oil) | 20 s |
-| 8–13 | Ritual Gua Sha | Cuello, mandíbula, sonrisa, ojos, cejas, frente (30 s por lado) | 6 × 60 s |
-| 14 | Cierre | Puntos gatillo (puntos rojos con onda) | 60 s |
-| 15 | Cierre | Finaliza el ritual | 20 s |
-| 16 | Cierre | Limpia tu piedra (piedra girando) | 30 s |
-| 17 | Cierre | Comparte tu ritual (captura con líneas sensoriales, logo y firma) | libre |
+| Bloque | Pasos | Duración |
+|---|---|---|
+| 1 · Calentamiento | Flexión, extensión, inclinación lateral, rotación, trapecio | 2 min |
+| 2 · Respiración | Inspirar 4 s · espirar 6 s, con círculo sobre el rostro | 1 min |
+| 3 · Piedra Gua Sha | Prepara la piel + cuello, mandíbula, sonrisa, ojos, cejas, frente (30 s por lado) | 6 min |
+| 4 · Estimulación de puntos faciales | Puntos por parejas (cejas, sienes, delante de las orejas, mandíbula, cuello; 12 s cada pareja), finaliza, limpia tu piedra (360°), comparte | 2 min |
 
-**Cómo se recorre cada paso**
+**Recorrido**
 
-1. Se abre la **ficha centrada** con toda la información, sobre la imagen de la cámara. El contador
-   no corre: la persona lee a su ritmo.
-2. Al pulsar **Comenzar**, la ficha se pliega hacia abajo y queda una **barra compacta**: logo,
-   «Paso X de 17 · Sección», nombre de la zona y botones. Empieza el contador (arriba a la derecha).
-3. **Info** vuelve a abrir la ficha (pausa el contador); **Continuar** la vuelve a plegar.
-4. Al acabar el tiempo se abre la ficha del paso siguiente.
+1. Al entrar en cada bloque aparece su **portada** («Bloque 1 de 4 · Calentamiento»), con lo que
+   incluye y su duración → **Continuar**.
+2. Cada paso abre su **ficha centrada** («Paso 1 de 5 · Calentamiento») para leer con calma. El
+   contador no corre. Solo hay un botón: **Comenzar**.
+3. Al pulsarlo, la ficha se pliega hacia abajo en una **barra compacta** (logo, paso, zona y
+   botones) y empieza el contador (arriba a la derecha). **Info** vuelve a abrir la ficha.
+4. Al acabar el tiempo se abre la ficha del paso siguiente (o la portada del bloque siguiente).
 
-**Compartir:** el botón de cámara compone una imagen vertical (cámara en espejo, líneas
-sensoriales, logo y «Ritual facial con OLIVYX») en el propio móvil. En iOS y Android abre el menú
-de compartir del sistema; en otros navegadores permite guardar la imagen.
+**Compartir:** el botón de cámara compone una imagen vertical en el propio móvil: cámara en espejo,
+líneas doradas que estilizan mandíbula, pómulos, patas de gallo y frente, marco fino, «Ritual
+facial con» + logotipo OLIVYX y el claim. En iOS y Android abre el menú de compartir del sistema.
 
 - Palabras clave en negrita: en `js/ritual.js`, el texto entre `**dobles asteriscos**`.
-- Duraciones, orden y textos se editan en `js/ritual.js`; el ritmo de respiración en `BREATH`;
-  los puntos gatillo en `TRIGGER_POINTS`; la forma de la piedra en `js/stone.js`.
+- Bloques y textos de portada: `BLOCKS`; pasos y duraciones: `STEPS`; respiración: `BREATH`;
+  puntos: `POINT_GROUPS`; líneas de compartir: `SCULPT`; forma de la piedra: `js/stone.js`.
 
 ## Publicar en GitHub Pages
 

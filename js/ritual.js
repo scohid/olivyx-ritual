@@ -75,20 +75,43 @@ const sideB = (key, stone = false) => ({ id: `${key}-b`, side: 'b', stone, ...S[
 const pair = (key, stone = false) => [sideA(key, stone), sideB(key, stone)];
 const center = (id, anchors) => ({ id, side: 'c', anchors, inset: 0, toward: 168 });
 
-// ── Puntos gatillo (zonas de tensión habituales en rostro y cuello) ───────
+// ── Estimulación de puntos faciales: por parejas simétricas ─────────────────
 const P = (anchor, inset = 0, toward = 1) => ({ anchors: [anchor], inset, toward });
-const POINTS_A = [
-  P(B(55, 107, 0.5)),                     // inicio de la ceja
-  P(B(21, 127, 0.5), 0.1),                // sien
-  P(B(234, 93, 0.5), 0.08),               // delante de la oreja (articulación)
-  P(B(58, 205, 0.35)),                    // masetero
-  P(D(132, 10, 152, 0.4), 0.2, 152),      // lateral del cuello
+const twin = (p) => [{ side: 'a', ...p }, { side: 'b', ...p, anchors: p.anchors.map(mirrorAnchor) }];
+export const POINT_GROUPS = [
+  { label: 'Cejas', points: twin(P(B(55, 107, 0.5))) },
+  { label: 'Sienes', points: twin(P(B(21, 127, 0.5), 0.1)) },
+  { label: 'Delante de las orejas', points: twin(P(B(234, 93, 0.5), 0.08)) },
+  { label: 'Mandíbula', points: twin(P(B(58, 205, 0.35))) },
+  { label: 'Cuello', points: twin(P(D(132, 10, 152, 0.4), 0.2, 152)) },
 ];
-export const TRIGGER_POINTS = [
-  { side: 'c', ...P(B(17, 152, 0.6)) },   // barbilla
-  ...POINTS_A.map((p) => ({ side: 'a', ...p })),
-  ...POINTS_A.map((p) => ({ side: 'b', ...p, anchors: p.anchors.map(mirrorAnchor) })),
+
+// ── Líneas que estilizan el rostro en «Comparte tu ritual» ────────────────
+const L = (anchors, inset = 0, toward = 1) => ({ anchors, inset, toward });
+const SCULPT_A = [
+  L([B(152, 148, 0.6), 176, 149, 150, 136, 172, 58, B(132, 93, 0.4)], 0.035),     // mandíbula
+  L([B(129, 133, 0.45), B(116, 50, 0.25), B(234, 127, 0.55)], 0.02),               // pómulo
+  L([B(33, 162, 0.22), B(33, 162, 0.58)]),                                          // patas de gallo
+  L([B(33, 127, 0.22), B(33, 127, 0.62)]),
+  L([B(33, 234, 0.22), B(33, 234, 0.55)]),
 ];
+export const SCULPT = [
+  ...SCULPT_A.map((l) => ({ side: 'a', ...l })),
+  ...SCULPT_A.map((l) => ({ side: 'b', ...l, anchors: l.anchors.map(mirrorAnchor) })),
+  // frente: dos arcos de sien a sien
+  { side: 'c', ...L([B(70, 54, 0.4), B(105, 67, 0.5), B(9, 10, 0.5), B(334, 297, 0.5), B(300, 284, 0.4)]) },
+  { side: 'c', ...L([B(70, 54, 0.7), B(105, 67, 0.78), B(9, 10, 0.75), B(334, 297, 0.78), B(300, 284, 0.7)]) },
+];
+// Destellos: inicio de ceja (arco), pómulo alto y barbilla
+export const SPARKLES = [P(B(105, 66, 0.5), -0.06, 1), P(B(116, 123, 0.5)), P(B(345, 352, 0.5)), P(B(17, 152, 0.55))];
+
+// ── Bloques del ritual ─────────────────────────────────────────────────────
+export const BLOCKS = {
+  'Calentamiento': 'Prepara el **cuello y los hombros** con estiramientos suaves antes del masaje.',
+  'Respiración': 'Un minuto para **bajar el ritmo** y conectar con el gesto.',
+  'Piedra Gua Sha': 'Aplica el aceite y recorre **seis zonas del rostro** con la piedra: siempre **hacia fuera** y **de abajo arriba**.',
+  'Estimulación de puntos faciales': 'Presión suave en **puntos clave del rostro y el cuello**, y cierre del ritual.',
+};
 
 // ── Piedra Gua Sha ─────────────────────────────────────────────────────────
 export const EDGES = {
@@ -171,7 +194,7 @@ const STEPS = [
 
   // Ritual Gua Sha (7 min)
   {
-    section: 'Ritual Gua Sha',
+    section: 'Piedra Gua Sha',
     title: 'Prepara la piel',
     text: 'Calienta **3 o 4 gotas** de **escualano de oliva** o **Facial Oil de OLIVYX** entre las palmas y **presiónalas** sobre rostro y cuello.',
     note: 'Sujeta la piedra **casi plana**, inclinada unos **15°**.',
@@ -179,7 +202,7 @@ const STEPS = [
     seconds: 20,
   },
   {
-    section: 'Ritual Gua Sha',
+    section: 'Piedra Gua Sha',
     title: 'Cuello',
     text: 'Desliza desde la **base del cuello** hacia la **mandíbula**, con **pasadas lentas**.',
     strokes: [center('neck-c', [D(152, 10, 152, 0.42), D(152, 10, 152, 0.08)]), ...pair('neck', true), ...pair('neckOuter')],
@@ -189,7 +212,7 @@ const STEPS = [
     sides: true,
   },
   {
-    section: 'Ritual Gua Sha',
+    section: 'Piedra Gua Sha',
     title: 'Contorno de la mandíbula',
     text: '**Abraza la mandíbula** con la hendidura y desliza desde la **barbilla** hasta la **oreja**.',
     strokes: pair('jaw', true),
@@ -199,7 +222,7 @@ const STEPS = [
     sides: true,
   },
   {
-    section: 'Ritual Gua Sha',
+    section: 'Piedra Gua Sha',
     title: 'Zona de la sonrisa',
     text: 'Desde la **comisura** y la **aleta de la nariz**, hacia la **oreja**.',
     strokes: [...pair('smileLow', true), ...pair('smileHigh')],
@@ -209,7 +232,7 @@ const STEPS = [
     sides: true,
   },
   {
-    section: 'Ritual Gua Sha',
+    section: 'Piedra Gua Sha',
     title: 'Contorno de ojos',
     text: 'Del **lagrimal** hacia la **sien**, por debajo del ojo. **Casi sin presión**: aquí la piel es muy fina.',
     strokes: pair('underEye', true),
@@ -219,7 +242,7 @@ const STEPS = [
     sides: true,
   },
   {
-    section: 'Ritual Gua Sha',
+    section: 'Piedra Gua Sha',
     title: 'Cejas',
     text: '**Abraza la ceja** con la hendidura y deslízala desde su **inicio** hacia la **sien**.',
     strokes: pair('brow', true),
@@ -229,7 +252,7 @@ const STEPS = [
     sides: true,
   },
   {
-    section: 'Ritual Gua Sha',
+    section: 'Piedra Gua Sha',
     title: 'Frente',
     text: 'Desde las **cejas** hacia el **nacimiento del pelo**, con movimientos **cortos y ligeros**.',
     strokes: [center('forehead-c', [B(9, 151, 0.2), B(9, 10, 0.86)]), ...pair('foreheadUp', true), ...pair('foreheadUpOuter')],
@@ -241,15 +264,15 @@ const STEPS = [
 
   // Cierre
   {
-    section: 'Cierre',
-    title: 'Puntos gatillo',
-    text: '**Presiona** con las yemas cada **punto marcado** y haz **pequeños círculos** durante unos segundos. Recorre **frente, sienes, mandíbula y cuello**.',
+    section: 'Estimulación de puntos faciales',
+    title: 'Estimulación de puntos faciales',
+    text: '**Presiona** con las yemas los **dos puntos marcados** y haz **pequeños círculos**. Cada **12 segundos** cambian de zona: **cejas, sienes, delante de las orejas, mandíbula y cuello**.',
     note: 'Presión **firme pero cómoda**, nunca dolorosa.',
     overlay: 'points',
-    seconds: 60,
+    moves: POINT_GROUPS.map((g) => ({ side: null, label: g.label, strokes: [], points: g.points, seconds: 12 })),
   },
   {
-    section: 'Cierre',
+    section: 'Estimulación de puntos faciales',
     title: 'Finaliza el ritual',
     text: 'Lleva las **palmas al rostro**, presiona con suavidad y **respira**.',
     note: 'La piel reconoce lo que le pertenece.',
@@ -257,7 +280,7 @@ const STEPS = [
     seconds: 20,
   },
   {
-    section: 'Cierre',
+    section: 'Estimulación de puntos faciales',
     title: 'Limpia tu piedra',
     text: 'Lávala con **agua tibia** y un **jabón suave**, sécala con un **paño limpio** y guárdala en su **funda**, lejos del sol directo.',
     note: 'Evita el **agua muy caliente** y los productos **abrasivos**.',
@@ -265,7 +288,7 @@ const STEPS = [
     seconds: 30,
   },
   {
-    section: 'Cierre',
+    section: 'Estimulación de puntos faciales',
     title: 'Comparte tu ritual',
     text: 'Pulsa la **cámara** para crear tu **imagen del ritual** y **compártela** en tus redes sociales.',
     note: 'La imagen se crea **en tu móvil** y solo se comparte si tú lo decides.',
@@ -304,7 +327,8 @@ export function requiredIndices() {
     s.anchors.forEach(add);
     set.add(s.toward);
   })));
-  TRIGGER_POINTS.forEach((p) => { p.anchors.forEach(add); set.add(p.toward); });
+  RITUAL.forEach((step) => step.moves.forEach((mv) => (mv.points || []).forEach((p) => { p.anchors.forEach(add); set.add(p.toward); })));
+  [...SCULPT, ...SPARKLES].forEach((p) => { p.anchors.forEach(add); set.add(p.toward); });
   return [...set];
 }
 

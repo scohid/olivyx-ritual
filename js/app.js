@@ -1,14 +1,14 @@
-import { startCamera, stopCamera, checkSupport, describeCameraError, isInAppBrowser } from './camera.js?v=20261119c';
-import { createTracker } from './tracker.js?v=20261119c';
-import { FaceState, makeMapper } from './faceState.js?v=20261119c';
-import { Renderer } from './renderer.js?v=20261119c';
+import { startCamera, stopCamera, checkSupport, describeCameraError, isInAppBrowser } from './camera.js?v=20261119d';
+import { createTracker } from './tracker.js?v=20261119d';
+import { FaceState, makeMapper } from './faceState.js?v=20261119d';
+import { Renderer } from './renderer.js?v=20261119d';
 import {
-  RITUAL, SECTIONS, BREATH, EDGES, FACE_OVAL, TRIGGER_POINTS,
+  RITUAL, SECTIONS, BLOCKS, BREATH, EDGES, FACE_OVAL, SCULPT, SPARKLES,
   requiredIndices, resolveStroke, emphasize,
-} from './ritual.js?v=20261119c';
-import { stoneIcon } from './stone.js?v=20261119c';
+} from './ritual.js?v=20261119d';
+import { stoneIcon } from './stone.js?v=20261119d';
 
-const VERSION = '20261119c';
+const VERSION = '20261119d';
 const $ = (s) => document.querySelector(s);
 const params = new URLSearchParams(location.search);
 const DEBUG = params.has('debug');
@@ -42,9 +42,14 @@ const el = {
   toolDir: $('#tool-dir'),
   note: $('#step-note'),
   nextUp: $('#next-up'),
-  infoPrev: $('#info-prev'),
-  infoNext: $('#info-next'),
   continue: $('#btn-continue'),
+  // portada de bloque
+  blockKicker: $('#block-kicker'),
+  blockTitle: $('#block-title'),
+  blockMeta: $('#block-meta'),
+  blockText: $('#block-text'),
+  blockList: $('#block-list'),
+  blockBtn: $('#btn-block'),
   // barra compacta
   sheet: $('#sheet'),
   eyebrow: $('#step-eyebrow'),
@@ -78,7 +83,8 @@ const state = {
   tracker: null,
   running: false,
   step: 0,
-  panel: 'info',          // 'info' = ficha centrada · 'run' = ejercicio en curso
+  panel: 'info',          // 'block' = portada del bloque · 'info' = ficha del paso · 'run' = ejercicio
+  currentBlock: null,
   started: false,         // si ya se ha pulsado «Comenzar» en este paso
   elapsed: 0,
   anim: 0,
@@ -158,6 +164,7 @@ async function begin() {
   show('stage');
   renderer.resize();
   face.reset();
+  state.currentBlock = null;
   goToStep(0);
   requestWakeLock();
   state.running = true;
@@ -206,7 +213,13 @@ function durationLabel(step) {
   return sides ? `${step.seconds} segundos · ${step.moves[0].seconds} s por lado` : `${step.seconds} segundos`;
 }
 
-/** Va a un paso y muestra su ficha centrada para leerla antes de empezar. */
+const blockOf = (i) => SECTIONS.indexOf(RITUAL[i].section);
+const stepsOfBlock = (b) => RITUAL.map((s, i) => i).filter((i) => blockOf(i) === b);
+
+/**
+ * Va a un paso. Si es el primero de un bloque al que se entra, muestra antes
+ * la portada del bloque; después, la ficha del paso para leerla con calma.
+ */
 function goToStep(i) {
   state.step = clamp(i, 0, RITUAL.length - 1);
   state.elapsed = 0;
@@ -216,7 +229,9 @@ function goToStep(i) {
   state.shownSecond = -1;
   state.moveIdx = -1;
   const step = RITUAL[state.step];
-  const eyebrow = `Paso ${state.step + 1} de ${RITUAL.length} · ${step.section}`;
+  const block = blockOf(state.step);
+  const inBlock = stepsOfBlock(block);
+  const eyebrow = `Paso ${inBlock.indexOf(state.step) + 1} de ${inBlock.length} · ${step.section}`;
 
   // Ficha completa
   el.infoEyebrow.textContent = eyebrow;
@@ -235,8 +250,6 @@ function goToStep(i) {
   if (step.note) el.note.innerHTML = emphasize(step.note);
   const next = RITUAL[state.step + 1];
   el.nextUp.innerHTML = next ? `A continuación · <span>${next.title}</span>` : 'Último paso del ritual';
-  el.infoPrev.disabled = state.step === 0;
-  el.infoNext.disabled = state.step === RITUAL.length - 1;
 
   // Barra compacta
   el.eyebrow.textContent = eyebrow;
@@ -252,7 +265,29 @@ function goToStep(i) {
   updateMove();
   updateTimer(true);
   updateSegments();
-  openInfo();
+  const entering = inBlock[0] === state.step && state.currentBlock !== block;
+  state.currentBlock = block;
+  if (entering) openBlock(block);
+  else openInfo();
+}
+
+/** Portada del bloque: «Bloque 1 · Calentamiento», qué incluye y cuánto dura. */
+function openBlock(b) {
+  const name = SECTIONS[b];
+  const steps = stepsOfBlock(b);
+  const secs = steps.reduce((acc, i) => acc + RITUAL[i].seconds, 0);
+  el.blockKicker.textContent = `Bloque ${b + 1} de ${SECTIONS.length}`;
+  el.blockTitle.textContent = name;
+  el.blockMeta.textContent = `${steps.length} ${steps.length === 1 ? 'paso' : 'pasos'} · ${secs >= 60 ? `${Math.round(secs / 60)} min` : `${secs} s`}`;
+  el.blockText.innerHTML = emphasize(BLOCKS[name] || '');
+  el.blockList.innerHTML = steps.length > 1
+    ? steps.map((i) => `<li>${RITUAL[i].title}</li>`).join('')
+    : '';
+  el.blockList.hidden = steps.length <= 1;
+  state.panel = 'block';
+  state.playing = false;
+  document.body.dataset.panel = 'block';
+  syncPlay();
 }
 
 /** Muestra la ficha centrada y pausa el ejercicio. */
@@ -330,7 +365,16 @@ function togglePlay(force) {
   syncPlay();
 }
 
+/** Evita que el foco de un botón oculto desplace la pantalla. */
+function resetScroll() {
+  if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+  const stage = document.getElementById('stage');
+  if (stage.scrollTop || stage.scrollLeft) { stage.scrollTop = 0; stage.scrollLeft = 0; }
+  if (window.scrollY) window.scrollTo(0, 0);
+}
+
 function syncPlay() {
+  resetScroll();
   el.play.dataset.state = state.playing ? 'playing' : 'paused';
   el.play.setAttribute('aria-label', state.playing ? 'Pausar' : 'Continuar');
   el.pausedTag.hidden = state.playing || state.panel !== 'run';
@@ -361,6 +405,8 @@ function frame(now) {
     }
   }
   face.tick(t);
+  const stageEl = el.sheet.parentElement;
+  if (stageEl.scrollTop) stageEl.scrollTop = 0;
 
   // 2. Contador del paso (solo con la ficha plegada). Al terminar, pasa al
   //    siguiente paso, que se abre con su ficha para leerla.
@@ -373,7 +419,7 @@ function frame(now) {
     }
   }
   // La animación sigue en la ficha (vista previa) y en el ejercicio, salvo en pausa.
-  if (state.panel === 'info' || state.playing || !step.seconds) state.anim += dt;
+  if (state.panel !== 'run' || state.playing || !step.seconds) state.anim += dt;
   updateMove();
   updateTimer();
   updateSegments();
@@ -381,7 +427,7 @@ function frame(now) {
   // 3. Presencia del rostro
   state.faceAlpha += ((face.present ? 1 : 0) - state.faceAlpha) * Math.min(1, dt * 6);
   const cur = RITUAL[state.step];
-  el.faceHint.hidden = state.panel === 'info' || ['breath', 'spin'].includes(cur.overlay) ||
+  el.faceHint.hidden = state.panel !== 'run' || ['breath', 'spin'].includes(cur.overlay) ||
     face.present || t - face.lastSeen < 1.2;
 
   // 4. Dibujo
@@ -406,7 +452,7 @@ function faceFrame() {
 
 function draw() {
   const step = RITUAL[state.step];
-  const preview = state.panel === 'info' ? 0.45 : 1;
+  const preview = state.panel === 'run' ? 1 : 0.45;
 
   // Pasos que no dependen del rostro
   if (step.overlay === 'breath') {
@@ -450,12 +496,15 @@ function draw() {
   }
 
   if (step.overlay === 'points') {
+    // Dos puntos simétricos cada vez; aparecen con un fundido al cambiar de zona.
+    const { move, elapsed } = currentMove();
     const pts = [];
-    for (const p of TRIGGER_POINTS) {
+    for (const p of move.points || []) {
       const r = resolveStroke(p, face);
       if (r && vis[p.side] > 0.2) pts.push(r[0]);
     }
-    renderer.pulses(pts, state.anim, { alpha, r: clamp(faceW * 0.028, 5, 12) });
+    const fade = state.panel === 'run' ? smooth(0, 0.6, elapsed) : 1;
+    renderer.pulses(pts, state.anim, { alpha: alpha * fade, r: clamp(faceW * 0.05, 9, 22) });
     return;
   }
 
@@ -467,7 +516,10 @@ function draw() {
   }
 
   if (step.overlay === 'aura') {
-    renderer.aura(auraRings(), alpha);
+    const lines = SCULPT.map((l) => (vis[l.side] > 0.3 ? resolveStroke(l, face) : null)).filter(Boolean);
+    const sparkles = SPARKLES.map((p) => resolveStroke(p, face)).filter(Boolean).map((r) => r[0]);
+    const f = faceFrame();
+    renderer.sculpt(lines, sparkles, { x: f.x, y: f.y }, f.h, state.anim, alpha);
     return;
   }
 
@@ -498,19 +550,6 @@ function ovalRing(k, c, wobble = 0, seed = 0) {
     pts.push({ x: p.x + (c.x - p.x) * kk, y: p.y + (c.y - p.y) * kk });
   }
   return pts;
-}
-
-/** Líneas sensoriales para el paso de compartir. */
-function auraRings() {
-  const c = face.get(1);
-  const rings = [];
-  [-0.24, -0.15, -0.07, 0.05, 0.13, 0.21, 0.29].forEach((k, i) => {
-    const pts = ovalRing(k, c, 0.012, i * 1.7);
-    if (!pts) return;
-    const base = clamp(1 - Math.abs(k) * 2.4, 0.3, 1);
-    rings.push({ pts, alpha: base * (0.75 + 0.25 * Math.sin(state.anim * 1.4 + i)) });
-  });
-  return rings;
 }
 
 /** Respiración guiada: funciona aunque no se detecte el rostro. */
@@ -563,23 +602,64 @@ async function captureImage() {
   // 2. Líneas sensoriales (el lienzo de la superposición)
   x.drawImage(el.canvas, 0, 0, cw, ch);
 
-  // 3. Degradado inferior, logo y firma
-  const g = x.createLinearGradient(0, ch * 0.62, 0, ch);
-  g.addColorStop(0, 'rgba(27, 31, 16, 0)');
-  g.addColorStop(1, 'rgba(27, 31, 16, 0.78)');
+  // 3. Tono cálido y viñeta suave
+  x.save();
+  x.globalCompositeOperation = 'soft-light';
+  x.fillStyle = 'rgba(255, 214, 160, 0.35)';
+  x.fillRect(0, 0, cw, ch);
+  x.restore();
+  const vg = x.createRadialGradient(cw / 2, ch * 0.4, ch * 0.25, cw / 2, ch * 0.45, ch * 0.75);
+  vg.addColorStop(0, 'rgba(20, 24, 12, 0)');
+  vg.addColorStop(1, 'rgba(20, 24, 12, 0.45)');
+  x.fillStyle = vg;
+  x.fillRect(0, 0, cw, ch);
+
+  // 4. Base: degradado verde OLIVYX para la firma
+  const g = x.createLinearGradient(0, ch * 0.6, 0, ch);
+  g.addColorStop(0, 'rgba(43, 51, 32, 0)');
+  g.addColorStop(0.55, 'rgba(43, 51, 32, 0.7)');
+  g.addColorStop(1, 'rgba(43, 51, 32, 0.92)');
   x.fillStyle = g;
-  x.fillRect(0, ch * 0.62, cw, ch * 0.38);
+  x.fillRect(0, ch * 0.6, cw, ch * 0.4);
+
+  // 5. Marco fino editorial
+  const m = cw * 0.04;
+  x.strokeStyle = 'rgba(243, 237, 224, 0.55)';
+  x.lineWidth = Math.max(1, cw * 0.0016);
+  x.strokeRect(m, m, cw - 2 * m, ch - 2 * m);
 
   try { await document.fonts.load(`300 ${Math.round(cw * 0.05)}px Poppins`); } catch { /* */ }
-  const logo = await loadImage('assets/olivyx-logo-light.svg');
-  const lw = cw * 0.4;
-  const lh = lw * (logo.naturalHeight / logo.naturalWidth || 65 / 448);
-  x.drawImage(logo, (cw - lw) / 2, ch * 0.83, lw, lh);
+  const spaced = (txt) => txt.split('').join('\u2009');
   x.fillStyle = '#f3ede0';
   x.textAlign = 'center';
-  x.textBaseline = 'top';
-  x.font = `300 ${Math.round(cw * 0.042)}px Poppins, "Helvetica Neue", sans-serif`;
-  x.fillText('Ritual facial con OLIVYX', cw / 2, ch * 0.83 + lh + cw * 0.04);
+  x.textBaseline = 'alphabetic';
+
+  // «RITUAL FACIAL CON» + wordmark OLIVYX + claim
+  const logo = await loadImage('assets/olivyx-logo-light.svg');
+  const lw = cw * 0.5;
+  const lh = lw * (logo.naturalHeight / logo.naturalWidth || 65 / 448);
+  const logoY = ch * 0.84;
+  x.font = `400 ${Math.round(cw * 0.026)}px Poppins, "Helvetica Neue", sans-serif`;
+  x.globalAlpha = 0.85;
+  x.fillText(spaced('RITUAL FACIAL CON'), cw / 2, logoY - cw * 0.04);
+  x.globalAlpha = 1;
+  x.drawImage(logo, (cw - lw) / 2, logoY, lw, lh);
+  const ly = logoY + lh + cw * 0.05;
+  x.strokeStyle = 'rgba(198, 173, 116, 0.8)';
+  x.beginPath();
+  x.moveTo(cw / 2 - cw * 0.06, ly);
+  x.lineTo(cw / 2 + cw * 0.06, ly);
+  x.stroke();
+  x.font = `italic 300 ${Math.round(cw * 0.03)}px Poppins, "Helvetica Neue", sans-serif`;
+  x.globalAlpha = 0.85;
+  x.fillText('La piel reconoce lo que le pertenece', cw / 2, ly + cw * 0.05);
+  x.globalAlpha = 1;
+
+  // Arriba: nombre del taller
+  x.font = `400 ${Math.round(cw * 0.022)}px Poppins, "Helvetica Neue", sans-serif`;
+  x.globalAlpha = 0.8;
+  x.fillText(spaced('TALLER DE AUTOMASAJE CON GUA SHA'), cw / 2, m + cw * 0.07);
+  x.globalAlpha = 1;
 
   return new Promise((resolve) => cv.toBlob(resolve, 'image/jpeg', 0.92));
 }
@@ -645,11 +725,10 @@ el.retry.addEventListener('click', begin);
 el.errorBack.addEventListener('click', () => show('intro'));
 el.close.addEventListener('click', exit);
 el.finish.addEventListener('click', exit);
-el.restart.addEventListener('click', () => goToStep(0));
+el.restart.addEventListener('click', () => { state.currentBlock = null; goToStep(0); });
 el.continue.addEventListener('click', startRun);
 el.info.addEventListener('click', openInfo);
-el.infoPrev.addEventListener('click', () => go(-1));
-el.infoNext.addEventListener('click', () => go(1));
+el.blockBtn.addEventListener('click', openInfo);
 el.prev.addEventListener('click', () => go(-1));
 el.next.addEventListener('click', () => go(1));
 el.repeat.addEventListener('click', () => { goToStep(state.step); startRun(); });
@@ -672,8 +751,12 @@ el.sheet.addEventListener('touchend', (e) => {
 
 window.addEventListener('keydown', (e) => {
   if (document.body.dataset.screen !== 'stage') return;
-  if (e.key === 'Enter' && state.panel === 'info') { e.preventDefault(); startRun(); }
-  if (e.key === ' ') { e.preventDefault(); state.panel === 'info' ? startRun() : togglePlay(); }
+  if (e.key === 'Enter' || e.key === ' ') {
+    e.preventDefault();
+    if (state.panel === 'block') openInfo();
+    else if (state.panel === 'info') startRun();
+    else if (e.key === ' ') togglePlay();
+  }
   if (e.key === 'ArrowRight') go(1);
   if (e.key === 'ArrowLeft') go(-1);
 });
