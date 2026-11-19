@@ -4,12 +4,12 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#F7F3EA" />
-  <meta name="description" content="Ritual Gua Sha guiado de OLIVYX, sobre tu propio rostro y en tiempo real." />
-  <title>OLIVYX · Ritual Gua Sha</title>
+  <meta name="description" content="Ritual facial OLIVYX: taller de automasaje con Gua Sha, guiado sobre tu propio rostro en tiempo real." />
+  <title>OLIVYX · Ritual facial</title>
   <link rel="icon" href="assets/favicon.svg" type="image/svg+xml" />
   <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
   <link rel="preload" href="assets/fonts/Poppins-Light.woff" as="font" type="font/woff" crossorigin />
-  <link rel="stylesheet" href="css/styles.css?v=20261119b" />
+  <link rel="stylesheet" href="css/styles.css?v=20261119c" />
 </head>
 <body data-screen="intro">
 
@@ -19,12 +19,14 @@
       <!-- Wordmark oficial (vector extraído de olivyx_logo_horizontal.pdf, sin modificar) -->
       <img class="logo" src="assets/olivyx-logo.svg" alt="OLIVYX" />
 
-      <p class="eyebrow">Ritual Gua Sha</p>
-      <h1 id="intro-title" class="intro-title">Un gesto guiado,<br /><em>sobre tu propio rostro.</em></h1>
-      <p class="intro-text">
+      <p class="eyebrow">Ritual facial</p>
+      <h1 id="intro-title" class="intro-title">Taller de automasaje<br /><em>con Gua Sha</em></h1>
+      <p class="intro-text intro-text-tight">
         Coloca el móvil frente a ti, ten a mano tu piedra y unas gotas de escualano de oliva o
-        Facial Oil de OLIVYX. <strong class="kw-dark">Calentamiento de cuello, respiración y seis zonas del rostro</strong>,
-        en unos <span id="intro-time">10</span> minutos.
+        Facial Oil de OLIVYX.
+      </p>
+      <p class="intro-text">
+        <strong class="kw-dark">Calentamiento de cuello, respiración y seis zonas del rostro.</strong>
       </p>
 
       <button class="btn btn-primary" id="btn-start" type="button">Comenzar mi ritual</button>
@@ -51,7 +53,7 @@
   <section class="screen screen-error" id="error" role="alert">
     <div class="intro-inner">
       <img class="logo" src="assets/olivyx-logo.svg" alt="OLIVYX" />
-      <p class="eyebrow">Ritual Gua Sha</p>
+      <p class="eyebrow">Ritual facial</p>
       <h2 class="error-title" id="error-title"></h2>
       <p class="intro-text" id="error-text"></p>
       <button class="btn btn-primary" id="btn-retry" type="button">Volver a intentarlo</button>
@@ -68,15 +70,18 @@
     <header class="stage-top">
       <div class="segments" id="segments"></div>
       <div class="stage-bar">
-        <button class="icon-btn icon-btn-sm" id="btn-close" type="button" aria-label="Salir del ritual">
-          <svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg>
-        </button>
-        <button class="timer" id="timer" type="button" aria-label="Quedan 15 segundos" title="Pausar o continuar">
+        <div class="stage-bar-left">
+          <button class="icon-btn icon-btn-sm" id="btn-close" type="button" aria-label="Salir del ritual">
+            <svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg>
+          </button>
+          <span class="remaining" id="remaining"></span>
+        </div>
+        <button class="timer" id="timer" type="button" aria-label="Contador del paso" title="Pausar o continuar">
           <svg viewBox="0 0 48 48" aria-hidden="true">
             <circle cx="24" cy="24" r="20" class="timer-track"/>
             <circle cx="24" cy="24" r="20" class="timer-ring" id="timer-ring"/>
           </svg>
-          <span class="timer-num" id="timer-num">15</span>
+          <span class="timer-num" id="timer-num">60</span>
         </button>
       </div>
     </header>
@@ -88,32 +93,49 @@
 
     <p class="paused-tag" id="paused-tag" hidden>En pausa</p>
 
-    <div class="sheet">
+    <!-- Ficha del paso: centrada, para leer antes de empezar -->
+    <section class="info-card" id="info-card" aria-live="polite" aria-labelledby="info-title">
       <img class="sheet-logo" src="assets/olivyx-logo-light.svg" alt="OLIVYX" />
+      <p class="step-eyebrow" id="info-eyebrow"></p>
+      <h2 class="info-title" id="info-title"></h2>
+      <p class="info-duration" id="info-duration"></p>
+      <p class="step-text" id="step-text"></p>
 
-      <div class="sheet-body" id="sheet-body" aria-live="polite">
-        <div class="eyebrow-row">
-          <p class="step-eyebrow" id="step-eyebrow"></p>
-          <span class="side-tag" id="side-tag" hidden></span>
-        </div>
-        <h2 class="step-title" id="step-title"></h2>
-        <p class="step-text" id="step-text"></p>
-
-        <div class="tool" id="tool">
-          <span class="tool-icon" id="tool-icon"></span>
-          <p class="tool-text">
-            <span class="tool-kicker">Piedra</span>
-            <strong id="tool-edge"></strong>
-            <span id="tool-dir"></span>
-          </p>
-        </div>
-        <p class="step-note" id="step-note" hidden></p>
-        <p class="next-up" id="next-up"></p>
+      <div class="tool" id="tool">
+        <span class="tool-icon" id="tool-icon"></span>
+        <p class="tool-text">
+          <span class="tool-kicker">Piedra</span>
+          <strong id="tool-edge"></strong>
+          <span id="tool-dir"></span>
+        </p>
       </div>
+      <p class="step-note" id="step-note" hidden></p>
+      <p class="next-up" id="next-up"></p>
+
+      <div class="info-actions">
+        <button class="icon-btn" id="info-prev" type="button" aria-label="Paso anterior">
+          <svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg>
+        </button>
+        <button class="btn btn-light" id="btn-continue" type="button">Comenzar</button>
+        <button class="icon-btn" id="info-next" type="button" aria-label="Paso siguiente">
+          <svg viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></svg>
+        </button>
+      </div>
+    </section>
+
+    <!-- Barra compacta durante el ejercicio -->
+    <div class="sheet" id="sheet">
+      <img class="sheet-logo" src="assets/olivyx-logo-light.svg" alt="OLIVYX" />
+      <div class="eyebrow-row">
+        <p class="step-eyebrow" id="step-eyebrow"></p>
+        <span class="side-tag" id="side-tag" hidden></span>
+      </div>
+      <h2 class="step-title" id="step-title"></h2>
 
       <nav class="controls" id="controls" aria-label="Controles del ritual">
-        <button class="icon-btn icon-btn-quiet" id="btn-repeat" type="button" aria-label="Repetir este paso">
-          <svg viewBox="0 0 24 24"><path d="M4.5 12a7.5 7.5 0 1 0 2.2-5.3"/><path d="M4.5 4.5v3.7h3.7"/></svg>
+        <button class="icon-btn icon-btn-quiet info-btn" id="btn-info" type="button" aria-label="Ver información">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 11v5.2M12 7.8v.1"/></svg>
+          <span>Info</span>
         </button>
         <button class="icon-btn" id="btn-prev" type="button" aria-label="Paso anterior">
           <svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg>
@@ -122,15 +144,32 @@
           <svg class="i-pause" viewBox="0 0 24 24"><path d="M9 6v12M15 6v12"/></svg>
           <svg class="i-play" viewBox="0 0 24 24"><path d="M8 5.5v13l10.5-6.5z"/></svg>
         </button>
+        <button class="icon-btn icon-btn-main" id="btn-shot" type="button" aria-label="Crear imagen para compartir" hidden>
+          <svg viewBox="0 0 24 24"><path d="M4 8.5h3l1.6-2.3h6.8L17 8.5h3v10H4z"/><circle cx="12" cy="13.2" r="3.4"/></svg>
+        </button>
         <button class="icon-btn" id="btn-next" type="button" aria-label="Paso siguiente">
           <svg viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></svg>
         </button>
-        <span class="remaining" id="remaining"></span>
+        <button class="icon-btn icon-btn-quiet" id="btn-repeat" type="button" aria-label="Repetir este paso">
+          <svg viewBox="0 0 24 24"><path d="M4.5 12a7.5 7.5 0 1 0 2.2-5.3"/><path d="M4.5 4.5v3.7h3.7"/></svg>
+        </button>
       </nav>
 
       <div class="end-actions" id="end-actions" hidden>
         <button class="btn btn-light" id="btn-restart" type="button">Repetir ritual</button>
         <button class="btn btn-ghost-light" id="btn-finish" type="button">Finalizar</button>
+      </div>
+    </div>
+
+    <div class="flash" id="flash" aria-hidden="true"></div>
+
+    <!-- Vista previa de la imagen para compartir -->
+    <div class="share-preview" id="share-preview" role="dialog" aria-label="Tu imagen del ritual" hidden>
+      <img class="share-img" id="share-img" alt="Tu imagen del ritual facial con OLIVYX" />
+      <div class="share-actions">
+        <button class="btn btn-light" id="btn-share" type="button">Compartir</button>
+        <a class="btn btn-ghost-light" id="btn-save" download="ritual-facial-olivyx.jpg">Guardar imagen</a>
+        <button class="btn-text" id="btn-share-close" type="button">Volver</button>
       </div>
     </div>
 
@@ -146,11 +185,11 @@
   <script>
     window.addEventListener('load', function () {
       setTimeout(function () {
-        var bad = window.__OLIVYX_VERSION !== '20261119b' || document.documentElement.dataset.versionError;
+        var bad = window.__OLIVYX_VERSION !== '20261119c' || document.documentElement.dataset.versionError;
         if (bad) document.getElementById('version-alert').hidden = false;
       }, 1500);
     });
   </script>
-  <script type="module" src="js/app.js?v=20261119b"></script>
+  <script type="module" src="js/app.js?v=20261119c"></script>
 </body>
 </html>

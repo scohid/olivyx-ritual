@@ -2,7 +2,7 @@
 // marcando el sentido y el ritmo del movimiento, y la piedra Gua Sha
 // deslizándose con la parte de trabajo por delante.
 
-import { STONE_PATH, STONE_EDGES, STONE_WIDTH } from './stone.js?v=20261119b';
+import { STONE_PATH, STONE_EDGES, STONE_WIDTH, STONE_HEIGHT } from './stone.js?v=20261119c';
 
 const CREAM = '246, 241, 228';
 const LIGHT = '255, 248, 226';
@@ -178,6 +178,12 @@ export class Renderer {
     return tip;
   }
 
+  ensureStone() {
+    if (this.stonePath) return;
+    this.stonePath = new Path2D(STONE_PATH);
+    this.edgePaths = Object.fromEntries(Object.entries(STONE_EDGES).map(([k, v]) => [k, new Path2D(v.path)]));
+  }
+
   /**
    * Piedra Gua Sha translúcida en la cabeza de la luz, girada para que la
    * parte de trabajo (`edge`) vaya por delante en el sentido del movimiento.
@@ -186,10 +192,7 @@ export class Renderer {
     if (!tip || alpha <= 0.01) return;
     const e = STONE_EDGES[edge];
     if (!e) return;
-    if (!this.stonePath) {
-      this.stonePath = new Path2D(STONE_PATH);
-      this.edgePaths = Object.fromEntries(Object.entries(STONE_EDGES).map(([k, v]) => [k, new Path2D(v.path)]));
-    }
+    this.ensureStone();
     const c = this.ctx;
     const s = width / STONE_WIDTH;
     const a = alpha * tip.fade;
@@ -281,6 +284,85 @@ export class Renderer {
     ctx.fillStyle = `rgba(${CREAM}, ${0.85 * alpha})`;
     ctx.fillText(String(count), c.x, c.y + 20);
     ctx.restore();
+  }
+
+  /** Puntos gatillo: punto rojo difuminado y una pequeña onda que se expande. */
+  pulses(points, t, { alpha, r }) {
+    const c = this.ctx;
+    points.forEach((p, i) => {
+      const ph = (t * 0.55 + i * 0.13) % 1;
+      // ondas
+      for (const k of [0, 0.5]) {
+        const q = (ph + k) % 1;
+        c.beginPath();
+        c.arc(p.x, p.y, r * (0.8 + q * 2.6), 0, Math.PI * 2);
+        c.strokeStyle = `rgba(222, 72, 58, ${(1 - q) * 0.55 * alpha})`;
+        c.lineWidth = 1.2;
+        c.stroke();
+      }
+      // punto con fundido
+      const breathe = 0.8 + 0.2 * Math.sin((t + i * 0.3) * 3);
+      const g = c.createRadialGradient(p.x, p.y, 0, p.x, p.y, r * 1.6);
+      g.addColorStop(0, `rgba(235, 70, 55, ${0.85 * breathe * alpha})`);
+      g.addColorStop(0.45, `rgba(222, 72, 58, ${0.45 * breathe * alpha})`);
+      g.addColorStop(1, 'rgba(222, 72, 58, 0)');
+      c.fillStyle = g;
+      c.beginPath();
+      c.arc(p.x, p.y, r * 1.6, 0, Math.PI * 2);
+      c.fill();
+    });
+  }
+
+  /** Piedra girando sobre su eje vertical, con un brillo que la recorre. */
+  spinStone(center, height, t, alpha) {
+    this.ensureStone();
+    const c = this.ctx;
+    const s = height / STONE_HEIGHT;
+    const turn = Math.cos(t * 1.3);           // -1..1: anchura aparente
+    const face = Math.abs(turn);
+    c.save();
+    c.translate(center.x, center.y + Math.sin(t * 1.1) * height * 0.03);
+    c.rotate(-0.12);
+    c.scale(s * Math.max(0.06, face) * Math.sign(turn || 1), s);
+    // cuerpo: más luminoso de frente, más oscuro de canto
+    c.fillStyle = `rgba(62, 72, 39, ${(0.35 + 0.3 * face) * alpha})`;
+    c.fill(this.stonePath);
+    c.lineWidth = 1.6 / (s * Math.max(0.06, face));
+    c.strokeStyle = `rgba(${CREAM}, ${(0.5 + 0.4 * face) * alpha})`;
+    c.stroke(this.stonePath);
+    // brillo
+    c.save();
+    c.clip(this.stonePath);
+    const sx = ((t * 0.5) % 1) * 220 - 110;
+    const g = c.createLinearGradient(sx - 30, -70, sx + 30, 70);
+    g.addColorStop(0, 'rgba(255, 248, 226, 0)');
+    g.addColorStop(0.5, `rgba(255, 248, 226, ${0.35 * face * alpha})`);
+    g.addColorStop(1, 'rgba(255, 248, 226, 0)');
+    c.fillStyle = g;
+    c.fillRect(-80, -90, 160, 180);
+    c.restore();
+    c.restore();
+  }
+
+  /**
+   * Líneas sensoriales: contornos del rostro concéntricos que respiran,
+   * hacia dentro y hacia fuera, como un aura topográfica.
+   * @param rings  [{ pts, alpha }]
+   */
+  aura(rings, alpha) {
+    const c = this.ctx;
+    c.lineCap = 'round';
+    c.lineJoin = 'round';
+    for (const ring of rings) {
+      const pts = spline([...ring.pts, ring.pts[0], ring.pts[1]], 6);
+      this.polyline(pts);
+      c.strokeStyle = `rgba(232, 214, 160, ${0.12 * ring.alpha * alpha})`;
+      c.lineWidth = 4;
+      c.stroke();
+      c.strokeStyle = `rgba(${LIGHT}, ${0.6 * ring.alpha * alpha})`;
+      c.lineWidth = 1;
+      c.stroke();
+    }
   }
 
   debug(face, labels) {

@@ -75,6 +75,21 @@ const sideB = (key, stone = false) => ({ id: `${key}-b`, side: 'b', stone, ...S[
 const pair = (key, stone = false) => [sideA(key, stone), sideB(key, stone)];
 const center = (id, anchors) => ({ id, side: 'c', anchors, inset: 0, toward: 168 });
 
+// ── Puntos gatillo (zonas de tensión habituales en rostro y cuello) ───────
+const P = (anchor, inset = 0, toward = 1) => ({ anchors: [anchor], inset, toward });
+const POINTS_A = [
+  P(B(55, 107, 0.5)),                     // inicio de la ceja
+  P(B(21, 127, 0.5), 0.1),                // sien
+  P(B(234, 93, 0.5), 0.08),               // delante de la oreja (articulación)
+  P(B(58, 205, 0.35)),                    // masetero
+  P(D(132, 10, 152, 0.4), 0.2, 152),      // lateral del cuello
+];
+export const TRIGGER_POINTS = [
+  { side: 'c', ...P(B(17, 152, 0.6)) },   // barbilla
+  ...POINTS_A.map((p) => ({ side: 'a', ...p })),
+  ...POINTS_A.map((p) => ({ side: 'b', ...p, anchors: p.anchors.map(mirrorAnchor) })),
+];
+
 // ── Piedra Gua Sha ─────────────────────────────────────────────────────────
 export const EDGES = {
   long: { label: 'Borde largo' },
@@ -227,11 +242,36 @@ const STEPS = [
   // Cierre
   {
     section: 'Cierre',
+    title: 'Puntos gatillo',
+    text: '**Presiona** con las yemas cada **punto marcado** y haz **pequeños círculos** durante unos segundos. Recorre **frente, sienes, mandíbula y cuello**.',
+    note: 'Presión **firme pero cómoda**, nunca dolorosa.',
+    overlay: 'points',
+    seconds: 60,
+  },
+  {
+    section: 'Cierre',
     title: 'Finaliza el ritual',
-    text: 'Lleva las **palmas al rostro**, presiona con suavidad y **respira**. **Limpia la piedra** antes de guardarla.',
+    text: 'Lleva las **palmas al rostro**, presiona con suavidad y **respira**.',
     note: 'La piel reconoce lo que le pertenece.',
     overlay: 'oval',
     seconds: 20,
+  },
+  {
+    section: 'Cierre',
+    title: 'Limpia tu piedra',
+    text: 'Lávala con **agua tibia** y un **jabón suave**, sécala con un **paño limpio** y guárdala en su **funda**, lejos del sol directo.',
+    note: 'Evita el **agua muy caliente** y los productos **abrasivos**.',
+    overlay: 'spin',
+    seconds: 30,
+  },
+  {
+    section: 'Cierre',
+    title: 'Comparte tu ritual',
+    text: 'Pulsa la **cámara** para crear tu **imagen del ritual** y **compártela** en tus redes sociales.',
+    note: 'La imagen se crea **en tu móvil** y solo se comparte si tú lo decides.',
+    overlay: 'aura',
+    share: true,
+    seconds: 0,
   },
 ];
 
@@ -245,7 +285,7 @@ export const RITUAL = STEPS.map((step) => {
     ];
   }
   if (!moves) moves = [{ side: null, label: '', strokes: step.strokes || [], seconds: step.seconds }];
-  const seconds = moves.reduce((s, mv) => s + mv.seconds, 0);
+  const seconds = moves.reduce((acc, mv) => acc + mv.seconds, 0);
   return { ...step, moves, seconds };
 });
 
@@ -264,6 +304,7 @@ export function requiredIndices() {
     s.anchors.forEach(add);
     set.add(s.toward);
   })));
+  TRIGGER_POINTS.forEach((p) => { p.anchors.forEach(add); set.add(p.toward); });
   return [...set];
 }
 

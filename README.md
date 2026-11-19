@@ -1,4 +1,4 @@
-# OLIVYX · Ritual Gua Sha
+# OLIVYX · Ritual facial — Taller de automasaje con Gua Sha
 
 Experiencia web para móvil que guía un ritual de Gua Sha con flechas animadas sobre el propio
 rostro, en tiempo real, con la cámara frontal. Se abre desde un código QR en Safari (iOS) o
@@ -9,31 +9,39 @@ Chrome (Android), sin instalar nada.
   envía a ningún servidor.
 - **Sin compilación:** HTML, CSS y JavaScript. Se publica tal cual en GitHub Pages.
 
-## Ritual: 14 pasos (≈ 10 minutos)
+## Ritual: 17 pasos (≈ 11 minutos de ejercicio)
 
 | # | Sección | Paso | Duración |
 |---|---|---|---|
-| 1 | Calentamiento | Flexión de cuello (barbilla al pecho) | 20 s |
-| 2 | Calentamiento | Extensión de cuello (mirar arriba) | 20 s |
+| 1 | Calentamiento | Flexión de cuello | 20 s |
+| 2 | Calentamiento | Extensión de cuello | 20 s |
 | 3 | Calentamiento | Inclinación lateral (derecha / izquierda) | 2 × 15 s |
 | 4 | Calentamiento | Rotación de cuello (derecha / izquierda) | 2 × 10 s |
 | 5 | Calentamiento | Estiramiento del trapecio (derecha / izquierda) | 2 × 15 s |
 | 6 | Respiración | Inspirar 4 s · espirar 6 s, con círculo sobre el rostro | 60 s |
 | 7 | Ritual Gua Sha | Prepara la piel (escualano de oliva o Facial Oil) | 20 s |
-| 8 | Ritual Gua Sha | Cuello · borde largo, de abajo arriba | 60 s |
-| 9 | Ritual Gua Sha | Contorno de la mandíbula · hendidura en V | 60 s |
-| 10 | Ritual Gua Sha | Zona de la sonrisa · borde largo | 60 s |
-| 11 | Ritual Gua Sha | Contorno de ojos · curva pequeña | 60 s |
-| 12 | Ritual Gua Sha | Cejas · hendidura en V | 60 s |
-| 13 | Ritual Gua Sha | Frente · borde largo, hacia arriba | 60 s |
-| 14 | Cierre | Finaliza el ritual | 20 s |
+| 8–13 | Ritual Gua Sha | Cuello, mandíbula, sonrisa, ojos, cejas, frente (30 s por lado) | 6 × 60 s |
+| 14 | Cierre | Puntos gatillo (puntos rojos con onda) | 60 s |
+| 15 | Cierre | Finaliza el ritual | 20 s |
+| 16 | Cierre | Limpia tu piedra (piedra girando) | 30 s |
+| 17 | Cierre | Comparte tu ritual (captura con líneas sensoriales, logo y firma) | libre |
 
-- Cada ejercicio de Gua Sha dura 60 s: 30 s lado derecho y 30 s lado izquierdo (etiqueta en el panel).
-- Contador del paso arriba a la derecha (al tocarlo se pausa); al llegar a cero pasa solo al siguiente.
-- Guía: barra superior por secciones, «Paso X de 14 · Sección», «A continuación» y tiempo total restante.
-- Navegación libre: anterior / siguiente, repetir, pausa, deslizar el panel o tocar la barra superior.
-- Palabras clave destacadas: en `js/ritual.js`, el texto entre `**dobles asteriscos**`.
-- Duraciones, orden y textos se editan en `js/ritual.js`; el ritmo de respiración en `BREATH`.
+**Cómo se recorre cada paso**
+
+1. Se abre la **ficha centrada** con toda la información, sobre la imagen de la cámara. El contador
+   no corre: la persona lee a su ritmo.
+2. Al pulsar **Comenzar**, la ficha se pliega hacia abajo y queda una **barra compacta**: logo,
+   «Paso X de 17 · Sección», nombre de la zona y botones. Empieza el contador (arriba a la derecha).
+3. **Info** vuelve a abrir la ficha (pausa el contador); **Continuar** la vuelve a plegar.
+4. Al acabar el tiempo se abre la ficha del paso siguiente.
+
+**Compartir:** el botón de cámara compone una imagen vertical (cámara en espejo, líneas
+sensoriales, logo y «Ritual facial con OLIVYX») en el propio móvil. En iOS y Android abre el menú
+de compartir del sistema; en otros navegadores permite guardar la imagen.
+
+- Palabras clave en negrita: en `js/ritual.js`, el texto entre `**dobles asteriscos**`.
+- Duraciones, orden y textos se editan en `js/ritual.js`; el ritmo de respiración en `BREATH`;
+  los puntos gatillo en `TRIGGER_POINTS`; la forma de la piedra en `js/stone.js`.
 
 ## Publicar en GitHub Pages
 
