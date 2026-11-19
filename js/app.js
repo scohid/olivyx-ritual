@@ -1,14 +1,14 @@
-import { startCamera, stopCamera, checkSupport, describeCameraError, isInAppBrowser } from './camera.js?v=20261119e';
-import { createTracker } from './tracker.js?v=20261119e';
-import { FaceState, makeMapper } from './faceState.js?v=20261119e';
-import { Renderer } from './renderer.js?v=20261119e';
+import { startCamera, stopCamera, checkSupport, describeCameraError, isInAppBrowser } from './camera.js?v=20261119f';
+import { createTracker } from './tracker.js?v=20261119f';
+import { FaceState, makeMapper } from './faceState.js?v=20261119f';
+import { Renderer } from './renderer.js?v=20261119f';
 import {
   RITUAL, SECTIONS, BLOCKS, BREATH, EDGES, FACE_OVAL, GLOW_ZONES,
   requiredIndices, resolveStroke, emphasize,
-} from './ritual.js?v=20261119e';
-import { stoneIcon } from './stone.js?v=20261119e';
+} from './ritual.js?v=20261119f';
+import { stoneIcon } from './stone.js?v=20261119f';
 
-const VERSION = '20261119e';
+const VERSION = '20261119f';
 const $ = (s) => document.querySelector(s);
 const params = new URLSearchParams(location.search);
 const DEBUG = params.has('debug');
@@ -498,13 +498,13 @@ function draw() {
   }
   if (step.overlay === 'spin') {
     if (state.panel === 'run') {
-      // Bajo el rostro, por encima de la barra inferior.
+      // Encima de la cabeza, por debajo de la barra superior.
       const f = faceFrame();
-      const width = clamp(f.h * 0.62, 120, renderer.w * 0.62);
-      const sheetTop = el.sheet.getBoundingClientRect().top;
-      const below = f.y + f.h * 0.5 + width * 0.45;
-      const y = Math.min(below, sheetTop - width * 0.35);
-      renderer.soapStone({ x: f.x, y }, width, state.anim, smooth(0, 0.8, state.anim));
+      const h = clamp(f.h * 0.42, 90, renderer.h * 0.2);
+      const top = face.get(10);
+      const headTop = top && state.faceAlpha > 0.3 ? top.y - f.h * 0.12 : f.y - f.h * 0.6;
+      const y = Math.max(headTop - h * 0.55, 96 + h * 0.5);
+      renderer.shineStone({ x: f.x, y }, h, state.anim, smooth(0, 0.8, state.anim));
     }
     return;
   }
@@ -689,7 +689,7 @@ async function captureImage() {
   x.fillText('La piel reconoce lo que le pertenece', cw / 2, ly + cw * 0.05);
   x.globalAlpha = 1;
   // Instagram
-  x.font = `500 ${Math.round(cw * 0.032)}px Poppins, "Helvetica Neue", sans-serif`;
+  x.font = `500 ${Math.round(cw * 0.038)}px Poppins, "Helvetica Neue", sans-serif`;
   x.fillText('@olivyx.es', cw / 2, ly + cw * 0.12);
 
   // Arriba: nombre del taller
@@ -727,7 +727,7 @@ async function shareShot() {
     await navigator.share({
       files: [state.shot.file],
       title: 'Ritual facial con OLIVYX',
-      text: 'Mi ritual facial con @olivyx.es',
+      text: 'Mi ritual facial con OLIVYX',
     });
   } catch (e) {
     if (e && e.name !== 'AbortError') console.warn('[OLIVYX] compartir', e);

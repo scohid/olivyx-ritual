@@ -287,7 +287,7 @@ const STEPS = [
   {
     section: 'Estimulación de puntos faciales',
     title: 'Comparte tu ritual',
-    text: 'Pulsa la **cámara** para crear tu **imagen del ritual** y **compártela** en tus redes sociales mencionando a **@olivyx.es**.',
+    text: 'Pulsa la **cámara** para crear tu **imagen del ritual** y **compártela** en tus redes sociales.',
     note: 'La imagen se crea **en tu móvil** y solo se comparte si tú lo decides.',
     overlay: 'aura',
     share: true,

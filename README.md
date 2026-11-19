@@ -16,7 +16,7 @@ Chrome (Android), sin instalar nada.
 | 1 · Calentamiento | Flexión, extensión, inclinación lateral, rotación, trapecio | 2 min |
 | 2 · Respiración | Inspirar 4 s · espirar 6 s, con círculo sobre el rostro | 1 min |
 | 3 · Piedra Gua Sha | Prepara la piel + cuello, mandíbula, sonrisa, ojos, cejas, frente (30 s por lado) | 6 min |
-| 4 · Estimulación de puntos faciales | Puntos verdes por parejas (cejas, sienes, delante de las orejas, mandíbula, cuello; 12 s cada pareja), finaliza, limpia tu piedra (con pompas de jabón, bajo el rostro), comparte | 2 min |
+| 4 · Estimulación de puntos faciales | Puntos verdes por parejas (cejas, sienes, delante de las orejas, mandíbula, cuello; 12 s cada pareja), finaliza, limpia tu piedra (reluciente, sobre la cabeza), comparte | 2 min |
 
 **Recorrido**
 

@@ -2,7 +2,7 @@
 // marcando el sentido y el ritmo del movimiento, y la piedra Gua Sha
 // deslizándose con la parte de trabajo por delante.
 
-import { STONE_PATH, STONE_EDGES, STONE_WIDTH, STONE_HEIGHT } from './stone.js?v=20261119e';
+import { STONE_PATH, STONE_EDGES, STONE_WIDTH, STONE_HEIGHT } from './stone.js?v=20261119f';
 
 const CREAM = '246, 241, 228';
 const LIGHT = '255, 248, 226';
@@ -343,49 +343,66 @@ export class Renderer {
   }
 
   /**
-   * La piedra tumbada bajo el rostro, meciéndose suavemente sobre espuma,
-   * con pompas de jabón que suben y se desvanecen.
+   * Piedra limpia y reluciente: flota suavemente sobre la cabeza con un halo
+   * de luz, un brillo que la recorre y destellos alrededor.
    */
-  soapStone(center, width, t, alpha) {
+  shineStone(center, height, t, alpha) {
     this.ensureStone();
     const c = this.ctx;
-    const s = width / STONE_HEIGHT;            // tumbada: el alto pasa a ser el ancho
-    // espuma bajo la piedra
-    for (let i = 0; i < 16; i++) {
-      const fx = center.x + (i / 15 - 0.5) * width * 1.15 + Math.sin(i * 7.1) * width * 0.04;
-      const fy = center.y + width * 0.2 + Math.sin(i * 3.3) * width * 0.04;
-      const fr = width * (0.035 + 0.03 * ((i * 37) % 5) / 5) * (1 + 0.08 * Math.sin(t * 2 + i));
-      this.bubble(fx, fy, fr, alpha * 0.9);
-    }
-    // piedra
+    const s = height / STONE_HEIGHT;
+    const y = center.y + Math.sin(t * 1.2) * height * 0.04;
+
+    // halo
     c.save();
-    c.translate(center.x, center.y + Math.sin(t * 1.4) * width * 0.02);
-    c.rotate(Math.PI / 2 + Math.sin(t * 0.9) * 0.08);
+    c.globalCompositeOperation = 'screen';
+    const halo = c.createRadialGradient(center.x, y, 0, center.x, y, height * 0.95);
+    halo.addColorStop(0, `rgba(255, 246, 226, ${0.32 * alpha})`);
+    halo.addColorStop(1, 'rgba(255, 246, 226, 0)');
+    c.fillStyle = halo;
+    c.beginPath();
+    c.arc(center.x, y, height * 0.95, 0, Math.PI * 2);
+    c.fill();
+    c.restore();
+
+    // piedra (ligeramente inclinada, meciéndose)
+    c.save();
+    c.translate(center.x, y);
+    c.rotate(-0.18 + Math.sin(t * 0.8) * 0.05);
     c.scale(s, s);
     c.fillStyle = `rgba(62, 72, 39, ${0.62 * alpha})`;
     c.fill(this.stonePath);
     c.lineWidth = 2 / s;
-    c.strokeStyle = `rgba(${CREAM}, ${0.9 * alpha})`;
+    c.strokeStyle = `rgba(${CREAM}, ${0.95 * alpha})`;
     c.stroke(this.stonePath);
     c.save();
     c.clip(this.stonePath);
-    const sx = ((t * 0.3) % 1) * 240 - 120;
-    const g = c.createLinearGradient(sx - 30, -80, sx + 30, 80);
-    g.addColorStop(0, 'rgba(255, 248, 226, 0)');
-    g.addColorStop(0.5, `rgba(255, 248, 226, ${0.4 * alpha})`);
-    g.addColorStop(1, 'rgba(255, 248, 226, 0)');
+    const sx = ((t * 0.35) % 1) * 260 - 130;
+    const g = c.createLinearGradient(sx - 26, -80, sx + 26, 80);
+    g.addColorStop(0, 'rgba(255, 250, 235, 0)');
+    g.addColorStop(0.5, `rgba(255, 250, 235, ${0.6 * alpha})`);
+    g.addColorStop(1, 'rgba(255, 250, 235, 0)');
     c.fillStyle = g;
-    c.fillRect(-90, -100, 180, 200);
+    c.fillRect(-100, -100, 200, 200);
     c.restore();
     c.restore();
-    // pompas que suben y se desvanecen antes de llegar al rostro
-    for (let i = 0; i < 10; i++) {
-      const q = (t * 0.22 + i / 10) % 1;
-      const bx = center.x + (((i * 53) % 10) / 9 - 0.5) * width * 1.1 + Math.sin(t * 1.3 + i) * width * 0.05;
-      const by = center.y + width * 0.1 - q * width * 0.9;
-      const br = width * (0.03 + ((i * 29) % 4) * 0.015);
-      this.bubble(bx, by, br, alpha * Math.sin(q * Math.PI));
-    }
+
+    // destellos de cuatro puntas alrededor
+    const spots = [[-0.62, -0.38], [0.58, -0.5], [0.7, 0.22], [-0.55, 0.42], [0.05, -0.72], [0.15, 0.62]];
+    spots.forEach(([dx, dy], i) => {
+      const tw = Math.pow(Math.max(0, Math.sin(t * 1.7 + i * 1.3)), 2);
+      if (tw < 0.03) return;
+      const r = height * (0.05 + 0.04 * (i % 2)) * tw;
+      c.save();
+      c.translate(center.x + dx * height * 0.75, y + dy * height * 0.75);
+      c.fillStyle = `rgba(255, 252, 240, ${tw * alpha})`;
+      c.shadowColor = 'rgba(255, 238, 200, 0.9)';
+      c.shadowBlur = 10;
+      c.beginPath();
+      c.moveTo(0, -r); c.quadraticCurveTo(0, 0, r * 0.7, 0); c.quadraticCurveTo(0, 0, 0, r);
+      c.quadraticCurveTo(0, 0, -r * 0.7, 0); c.quadraticCurveTo(0, 0, 0, -r);
+      c.fill();
+      c.restore();
+    });
   }
 
   /**
