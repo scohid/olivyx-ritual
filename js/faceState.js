@@ -1,4 +1,4 @@
-import { OneEuro } from './oneEuro.js?v=20261119f';
+import { OneEuro } from './oneEuro.js?v=20261119g';
 
 /**
  * Convierte landmarks normalizados de MediaPipe a píxeles de pantalla,

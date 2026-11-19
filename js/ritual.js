@@ -26,7 +26,7 @@ export const PAIRS = [
   [129, 358], [50, 280], [116, 345], [123, 352], [205, 425],
   [108, 337], [69, 299], [104, 333],
 ];
-const CENTER = new Set([1, 4, 6, 9, 10, 17, 151, 152, 168, 175, 199]);
+const CENTER = new Set([0, 1, 2, 4, 6, 9, 10, 17, 151, 152, 168, 175, 199]);
 const MIRROR = new Map();
 PAIRS.forEach(([a, b]) => { MIRROR.set(a, b); MIRROR.set(b, a); });
 
@@ -86,20 +86,26 @@ export const POINT_GROUPS = [
   { label: 'Cuello', points: twin(P(D(132, 10, 152, 0.4), 0.2, 152)) },
 ];
 
-// ── Brillo en la piel para «Comparte tu ritual» ──────────────────────────
-// Zonas donde se coloca la luz, como un iluminador: pómulos, arco de la ceja,
-// tabique, frente y barbilla. spread = radio relativo al ancho del rostro.
-const Z = (anchor, spread, count, glow = false) => ({ anchors: [anchor], inset: 0, toward: 1, spread, count, glow });
+// ── Glow para «Comparte tu ritual» ─────────────────────────────────────────
+// Piel jugosa y luminosa: brillos especulares donde la luz toca el rostro
+// (pómulos, arco de la ceja, tabique, punta de la nariz, arco de Cupido,
+// barbilla), un rubor suave en las mejillas y luz difusa en la frente.
+// w y h: tamaño relativo al ancho del rostro. axis: dos landmarks que dan
+// la orientación de la elipse.
+const G = (kind, anchor, w, h, axis) => ({ kind, anchors: [anchor], inset: 0, toward: 1, w, h, axis });
 const GLOW_A = [
-  Z(B(116, 50, 0.35), 0.12, 24, true),   // pómulo
-  Z(B(105, 66, 0.5), 0.05, 7),           // arco de la ceja
+  G('spec', B(116, 50, 0.3), 0.17, 0.055, [50, 127]),     // pómulo
+  G('blush', B(50, 205, 0.35), 0.15, 0.11, [50, 127]),    // mejilla
+  G('spec', B(105, 66, 0.4), 0.075, 0.022, [107, 70]),    // arco de la ceja
 ];
-export const GLOW_ZONES = [
-  ...GLOW_A.map((z) => ({ side: 'a', ...z })),
-  ...GLOW_A.map((z) => ({ side: 'b', ...z, anchors: z.anchors.map(mirrorAnchor) })),
-  { side: 'c', ...Z(B(6, 4, 0.5), 0.035, 5) },      // tabique
-  { side: 'c', ...Z(B(151, 9, 0.3), 0.08, 6) },     // frente
-  { side: 'c', ...Z(B(17, 152, 0.55), 0.04, 4) },   // barbilla
+export const GLOW = [
+  ...GLOW_A.map((g) => ({ side: 'a', ...g })),
+  ...GLOW_A.map((g) => ({ side: 'b', ...g, anchors: g.anchors.map(mirrorAnchor), axis: g.axis.map(m) })),
+  { side: 'c', ...G('spec', B(6, 4, 0.45), 0.022, 0.1, [168, 4]) },   // tabique
+  { side: 'c', ...G('spec', 4, 0.032, 0.024, [234, 454]) },           // punta de la nariz
+  { side: 'c', ...G('spec', B(0, 2, 0.35), 0.045, 0.012, [61, 291]) }, // arco de Cupido
+  { side: 'c', ...G('spec', B(17, 152, 0.6), 0.055, 0.03, [61, 291]) }, // barbilla
+  { side: 'c', ...G('soft', B(151, 9, 0.15), 0.16, 0.07, [67, 297]) },  // frente
 ];
 
 // ── Bloques del ritual ─────────────────────────────────────────────────────
@@ -281,7 +287,6 @@ const STEPS = [
     title: 'Limpia tu piedra',
     text: 'Lávala con **agua tibia** y un **jabón suave**, sécala con un **paño limpio** y guárdala en su **funda**, lejos del sol directo.',
     note: 'Evita el **agua muy caliente** y los productos **abrasivos**.',
-    overlay: 'spin',
     seconds: 30,
   },
   {
@@ -325,7 +330,7 @@ export function requiredIndices() {
     set.add(s.toward);
   })));
   RITUAL.forEach((step) => step.moves.forEach((mv) => (mv.points || []).forEach((p) => { p.anchors.forEach(add); set.add(p.toward); })));
-  GLOW_ZONES.forEach((p) => { p.anchors.forEach(add); set.add(p.toward); });
+  GLOW.forEach((g) => { g.anchors.forEach(add); g.axis.forEach((i) => set.add(i)); set.add(g.toward); });
   return [...set];
 }
 

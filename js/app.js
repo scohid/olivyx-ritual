@@ -1,14 +1,14 @@
-import { startCamera, stopCamera, checkSupport, describeCameraError, isInAppBrowser } from './camera.js?v=20261119f';
-import { createTracker } from './tracker.js?v=20261119f';
-import { FaceState, makeMapper } from './faceState.js?v=20261119f';
-import { Renderer } from './renderer.js?v=20261119f';
+import { startCamera, stopCamera, checkSupport, describeCameraError, isInAppBrowser } from './camera.js?v=20261119g';
+import { createTracker } from './tracker.js?v=20261119g';
+import { FaceState, makeMapper } from './faceState.js?v=20261119g';
+import { Renderer, drawGlow } from './renderer.js?v=20261119g';
 import {
-  RITUAL, SECTIONS, BLOCKS, BREATH, EDGES, FACE_OVAL, GLOW_ZONES,
+  RITUAL, SECTIONS, BLOCKS, BREATH, EDGES, FACE_OVAL, GLOW,
   requiredIndices, resolveStroke, emphasize,
-} from './ritual.js?v=20261119f';
-import { stoneIcon } from './stone.js?v=20261119f';
+} from './ritual.js?v=20261119g';
+import { stoneIcon } from './stone.js?v=20261119g';
 
-const VERSION = '20261119f';
+const VERSION = '20261119g';
 const $ = (s) => document.querySelector(s);
 const params = new URLSearchParams(location.search);
 const DEBUG = params.has('debug');
@@ -496,18 +496,6 @@ function draw() {
     if (state.panel === 'run') drawBreath();
     return;
   }
-  if (step.overlay === 'spin') {
-    if (state.panel === 'run') {
-      // Encima de la cabeza, por debajo de la barra superior.
-      const f = faceFrame();
-      const h = clamp(f.h * 0.42, 90, renderer.h * 0.2);
-      const top = face.get(10);
-      const headTop = top && state.faceAlpha > 0.3 ? top.y - f.h * 0.12 : f.y - f.h * 0.6;
-      const y = Math.max(headTop - h * 0.55, 96 + h * 0.5);
-      renderer.shineStone({ x: f.x, y }, h, state.anim, smooth(0, 0.8, state.anim));
-    }
-    return;
-  }
 
   if (state.faceAlpha <= 0.01 || !face.get(1)) return;
   const n = face.get(1);
@@ -558,13 +546,8 @@ function draw() {
   }
 
   if (step.overlay === 'aura') {
-    const zones = [];
-    for (const z of GLOW_ZONES) {
-      if (vis[z.side] < 0.3) continue;
-      const r = resolveStroke(z, face);
-      if (r) zones.push({ x: r[0].x, y: r[0].y, spread: z.spread * faceW, count: z.count, glow: z.glow });
-    }
-    renderer.glitter(zones, state.anim, alpha);
+    state.glowData = glowData(faceW, vis);
+    renderer.glow(state.glowData.items, state.glowData.prism, state.anim, alpha);
     return;
   }
 
@@ -595,6 +578,29 @@ function ovalRing(k, c, wobble = 0, seed = 0) {
     pts.push({ x: p.x + (c.x - p.x) * kk, y: p.y + (c.y - p.y) * kk });
   }
   return pts;
+}
+
+/** Zonas de brillo, rubor y luz prismática sobre el rostro actual. */
+function glowData(faceW, vis) {
+  const items = [];
+  for (const g of GLOW) {
+    const r = resolveStroke(g, face);
+    const p = face.get(g.axis[0]), q = face.get(g.axis[1]);
+    if (!r || !p || !q) continue;
+    const a = vis[g.side];
+    items.push({
+      kind: g.kind,
+      x: r[0].x, y: r[0].y,
+      rx: g.w * faceW, ry: g.h * faceW * (0.4 + 0.6 * a),
+      angle: Math.atan2(q.y - p.y, q.x - p.x),
+    });
+  }
+  // Luz prismática: cruza el rostro en diagonal, siguiendo su inclinación.
+  const f = faceFrame();
+  const l = face.get(234), rr = face.get(454);
+  const roll = l && rr ? Math.atan2(rr.y - l.y, rr.x - l.x) : 0;
+  const prism = { x: f.x, y: f.y + f.h * 0.15, size: f.h * 1.1, angle: roll - 0.55 };
+  return { items, prism };
 }
 
 /** Respiración guiada: funciona aunque no se detecte el rostro. */
@@ -644,10 +650,29 @@ async function captureImage() {
   x.drawImage(v, (cw - dw) / 2, (ch - dh) / 2, dw, dh);
   x.restore();
 
-  // 2. Líneas sensoriales (el lienzo de la superposición)
-  x.drawImage(el.canvas, 0, 0, cw, ch);
+  // 2. Glow: en el paso de compartir se pinta sobre la propia imagen con
+  //    modos de fusión, para que la luz se integre en la piel.
+  if (RITUAL[state.step].overlay === 'aura' && state.glowData && state.faceAlpha > 0.3) {
+    drawGlow(x, state.glowData.items, state.glowData.prism, state.anim, 1, { blend: true, k });
+  } else {
+    x.drawImage(el.canvas, 0, 0, cw, ch);
+  }
 
-  // 3. Sombra neutra muy suave abajo, solo para que se lea la firma
+  // 3. Bloom: una copia muy desenfocada sumada en «screen» da el halo suave
+  const small = document.createElement('canvas');
+  small.width = Math.max(1, Math.round(cw / 14));
+  small.height = Math.max(1, Math.round(ch / 14));
+  const sx = small.getContext('2d');
+  sx.imageSmoothingQuality = 'high';
+  sx.drawImage(cv, 0, 0, small.width, small.height);
+  x.save();
+  x.globalCompositeOperation = 'screen';
+  x.globalAlpha = 0.28;
+  x.imageSmoothingQuality = 'high';
+  x.drawImage(small, 0, 0, cw, ch);
+  x.restore();
+
+  // 4. Sombra neutra muy suave abajo, solo para que se lea la firma
   const g = x.createLinearGradient(0, ch * 0.62, 0, ch);
   g.addColorStop(0, 'rgba(0, 0, 0, 0)');
   g.addColorStop(1, 'rgba(0, 0, 0, 0.55)');

@@ -2,7 +2,7 @@
 // marcando el sentido y el ritmo del movimiento, y la piedra Gua Sha
 // deslizándose con la parte de trabajo por delante.
 
-import { STONE_PATH, STONE_EDGES, STONE_WIDTH, STONE_HEIGHT } from './stone.js?v=20261119f';
+import { STONE_PATH, STONE_EDGES, STONE_WIDTH, STONE_HEIGHT } from './stone.js?v=20261119g';
 
 const CREAM = '246, 241, 228';
 const LIGHT = '255, 248, 226';
@@ -319,145 +319,9 @@ export class Renderer {
     });
   }
 
-  /** Una pompa de jabón: transparente, con reflejos irisados y un brillo. */
-  bubble(x, y, r, a) {
-    const c = this.ctx;
-    const g = c.createRadialGradient(x - r * 0.3, y - r * 0.3, r * 0.1, x, y, r);
-    g.addColorStop(0, `rgba(255, 255, 255, ${0.05 * a})`);
-    g.addColorStop(0.75, `rgba(220, 235, 255, ${0.12 * a})`);
-    g.addColorStop(0.92, `rgba(255, 210, 235, ${0.35 * a})`);
-    g.addColorStop(1, `rgba(200, 240, 220, ${0.5 * a})`);
-    c.fillStyle = g;
-    c.beginPath();
-    c.arc(x, y, r, 0, Math.PI * 2);
-    c.fill();
-    c.lineWidth = 1;
-    c.strokeStyle = `rgba(255, 255, 255, ${0.55 * a})`;
-    c.stroke();
-    c.beginPath();
-    c.arc(x, y, r * 0.68, Math.PI * 1.1, Math.PI * 1.45);
-    c.strokeStyle = `rgba(255, 255, 255, ${0.85 * a})`;
-    c.lineWidth = Math.max(1, r * 0.12);
-    c.lineCap = 'round';
-    c.stroke();
-  }
-
-  /**
-   * Piedra limpia y reluciente: flota suavemente sobre la cabeza con un halo
-   * de luz, un brillo que la recorre y destellos alrededor.
-   */
-  shineStone(center, height, t, alpha) {
-    this.ensureStone();
-    const c = this.ctx;
-    const s = height / STONE_HEIGHT;
-    const y = center.y + Math.sin(t * 1.2) * height * 0.04;
-
-    // halo
-    c.save();
-    c.globalCompositeOperation = 'screen';
-    const halo = c.createRadialGradient(center.x, y, 0, center.x, y, height * 0.95);
-    halo.addColorStop(0, `rgba(255, 246, 226, ${0.32 * alpha})`);
-    halo.addColorStop(1, 'rgba(255, 246, 226, 0)');
-    c.fillStyle = halo;
-    c.beginPath();
-    c.arc(center.x, y, height * 0.95, 0, Math.PI * 2);
-    c.fill();
-    c.restore();
-
-    // piedra (ligeramente inclinada, meciéndose)
-    c.save();
-    c.translate(center.x, y);
-    c.rotate(-0.18 + Math.sin(t * 0.8) * 0.05);
-    c.scale(s, s);
-    c.fillStyle = `rgba(62, 72, 39, ${0.62 * alpha})`;
-    c.fill(this.stonePath);
-    c.lineWidth = 2 / s;
-    c.strokeStyle = `rgba(${CREAM}, ${0.95 * alpha})`;
-    c.stroke(this.stonePath);
-    c.save();
-    c.clip(this.stonePath);
-    const sx = ((t * 0.35) % 1) * 260 - 130;
-    const g = c.createLinearGradient(sx - 26, -80, sx + 26, 80);
-    g.addColorStop(0, 'rgba(255, 250, 235, 0)');
-    g.addColorStop(0.5, `rgba(255, 250, 235, ${0.6 * alpha})`);
-    g.addColorStop(1, 'rgba(255, 250, 235, 0)');
-    c.fillStyle = g;
-    c.fillRect(-100, -100, 200, 200);
-    c.restore();
-    c.restore();
-
-    // destellos de cuatro puntas alrededor
-    const spots = [[-0.62, -0.38], [0.58, -0.5], [0.7, 0.22], [-0.55, 0.42], [0.05, -0.72], [0.15, 0.62]];
-    spots.forEach(([dx, dy], i) => {
-      const tw = Math.pow(Math.max(0, Math.sin(t * 1.7 + i * 1.3)), 2);
-      if (tw < 0.03) return;
-      const r = height * (0.05 + 0.04 * (i % 2)) * tw;
-      c.save();
-      c.translate(center.x + dx * height * 0.75, y + dy * height * 0.75);
-      c.fillStyle = `rgba(255, 252, 240, ${tw * alpha})`;
-      c.shadowColor = 'rgba(255, 238, 200, 0.9)';
-      c.shadowBlur = 10;
-      c.beginPath();
-      c.moveTo(0, -r); c.quadraticCurveTo(0, 0, r * 0.7, 0); c.quadraticCurveTo(0, 0, 0, r);
-      c.quadraticCurveTo(0, 0, -r * 0.7, 0); c.quadraticCurveTo(0, 0, 0, -r);
-      c.fill();
-      c.restore();
-    });
-  }
-
-  /**
-   * Brillo en la piel: luz suave en pómulos y destellos que titilan
-   * (puntos finos y estrellas de cuatro puntas), como un iluminador.
-   * @param zones [{ x, y, spread, glow }]
-   */
-  glitter(zones, t, alpha) {
-    const c = this.ctx;
-    // luz suave
-    c.save();
-    c.globalCompositeOperation = 'screen';
-    zones.forEach((z) => {
-      if (!z.glow) return;
-      const g = c.createRadialGradient(z.x, z.y, 0, z.x, z.y, z.spread * 1.6);
-      g.addColorStop(0, `rgba(255, 246, 228, ${0.32 * alpha})`);
-      g.addColorStop(1, 'rgba(255, 246, 228, 0)');
-      c.fillStyle = g;
-      c.beginPath();
-      c.arc(z.x, z.y, z.spread * 1.6, 0, Math.PI * 2);
-      c.fill();
-    });
-    c.restore();
-    // destellos con posiciones pseudoaleatorias fijas por zona
-    zones.forEach((z, zi) => {
-      const n = z.count || 10;
-      for (let k = 0; k < n; k++) {
-        const seed = zi * 97 + k * 13.37;
-        const rnd = (m) => { const v = Math.sin(seed * m) * 43758.5453; return v - Math.floor(v); };
-        const ang = rnd(1.1) * Math.PI * 2;
-        const rad = Math.sqrt(rnd(2.3)) * z.spread;
-        const x = z.x + Math.cos(ang) * rad * 1.3;
-        const y = z.y + Math.sin(ang) * rad * 0.8;
-        const tw = Math.pow(Math.max(0, Math.sin(t * (1.6 + rnd(3.7) * 1.8) + rnd(5.9) * 6.28)), 2);
-        if (tw < 0.02) continue;
-        if (k % 3 === 0) {
-          const r = (6 + rnd(7.7) * 8) * tw;
-          c.save();
-          c.translate(x, y);
-          c.fillStyle = `rgba(255, 252, 240, ${tw * alpha})`;
-          c.shadowColor = 'rgba(255, 240, 210, 0.9)';
-          c.shadowBlur = 8;
-          c.beginPath();
-          c.moveTo(0, -r); c.quadraticCurveTo(0, 0, r * 0.7, 0); c.quadraticCurveTo(0, 0, 0, r);
-          c.quadraticCurveTo(0, 0, -r * 0.7, 0); c.quadraticCurveTo(0, 0, 0, -r);
-          c.fill();
-          c.restore();
-        } else {
-          c.beginPath();
-          c.arc(x, y, 1 + tw * 2, 0, Math.PI * 2);
-          c.fillStyle = `rgba(255, 250, 235, ${0.9 * tw * alpha})`;
-          c.fill();
-        }
-      }
-    });
+  /** Glow en pantalla (sobre el lienzo transparente de la superposición). */
+  glow(items, prism, t, alpha) {
+    drawGlow(this.ctx, items, prism, t, alpha, { blend: false, k: 1 });
   }
 
   debug(face, labels) {
@@ -476,4 +340,87 @@ export class Renderer {
       if (p) c.fillText(String(i), p.x + 2, p.y - 2);
     }
   }
+}
+
+/**
+ * Glow elegante: brillo húmedo en las zonas altas del rostro, rubor suave y
+ * una luz prismática muy tenue que cruza en diagonal.
+ * - blend: true cuando se pinta directamente sobre la imagen de la cámara
+ *   (foto final): usa modos de fusión «screen» y «soft-light» para que la luz
+ *   se integre en la piel. En pantalla (lienzo transparente) se usa opacidad.
+ * - k: escala de coordenadas (la foto final se genera a mayor resolución).
+ */
+export function drawGlow(c, items, prism, t, alpha, { blend, k }) {
+  const shimmer = 0.9 + 0.1 * Math.sin(t * 1.3);
+
+  // Rubor: tono melocotón rosado, muy difuso
+  for (const it of items) {
+    if (it.kind !== 'blush') continue;
+    ellipse(c, it, k, (g) => {
+      g.addColorStop(0, `rgba(244, 150, 140, ${(blend ? 0.5 : 0.16) * alpha})`);
+      g.addColorStop(1, 'rgba(244, 150, 140, 0)');
+    }, blend ? 'soft-light' : 'source-over');
+  }
+
+  // Luz prismática (iridiscente) muy sutil, que se desplaza despacio
+  if (prism) {
+    c.save();
+    c.globalCompositeOperation = blend ? 'screen' : 'source-over';
+    c.translate(prism.x * k, prism.y * k);
+    c.rotate(prism.angle);
+    const L = prism.size * k;
+    const drift = Math.sin(t * 0.35) * L * 0.08;
+    [[-0.32, 0.16], [0.42, 0.11]].forEach(([off, wdt]) => {
+      const y0 = off * L + drift;
+      const g = c.createLinearGradient(0, y0 - wdt * L, 0, y0 + wdt * L);
+      const a = (blend ? 0.2 : 0.1) * alpha;
+      g.addColorStop(0, 'rgba(255, 170, 210, 0)');
+      g.addColorStop(0.25, `rgba(255, 170, 210, ${a})`);
+      g.addColorStop(0.45, `rgba(255, 230, 160, ${a})`);
+      g.addColorStop(0.62, `rgba(170, 245, 200, ${a})`);
+      g.addColorStop(0.8, `rgba(170, 210, 255, ${a})`);
+      g.addColorStop(1, 'rgba(170, 210, 255, 0)');
+      c.fillStyle = g;
+      c.fillRect(-L, y0 - wdt * L, L * 2, wdt * L * 2);
+    });
+    c.restore();
+  }
+
+  // Luz difusa (frente)
+  for (const it of items) {
+    if (it.kind !== 'soft') continue;
+    ellipse(c, it, k, (g) => {
+      g.addColorStop(0, `rgba(255, 244, 230, ${(blend ? 0.28 : 0.14) * alpha})`);
+      g.addColorStop(1, 'rgba(255, 244, 230, 0)');
+    }, blend ? 'screen' : 'source-over');
+  }
+
+  // Brillo húmedo: núcleo luminoso y halo amplio
+  for (const it of items) {
+    if (it.kind !== 'spec') continue;
+    ellipse(c, { ...it, rx: it.rx * 1.9, ry: it.ry * 2.4 }, k, (g) => {
+      g.addColorStop(0, `rgba(255, 240, 225, ${(blend ? 0.32 : 0.14) * alpha * shimmer})`);
+      g.addColorStop(1, 'rgba(255, 240, 225, 0)');
+    }, blend ? 'screen' : 'source-over');
+    ellipse(c, it, k, (g) => {
+      g.addColorStop(0, `rgba(255, 255, 250, ${(blend ? 0.75 : 0.42) * alpha * shimmer})`);
+      g.addColorStop(0.5, `rgba(255, 250, 240, ${(blend ? 0.3 : 0.16) * alpha * shimmer})`);
+      g.addColorStop(1, 'rgba(255, 250, 240, 0)');
+    }, blend ? 'screen' : 'source-over');
+  }
+}
+
+function ellipse(c, it, k, stops, op) {
+  c.save();
+  c.globalCompositeOperation = op;
+  c.translate(it.x * k, it.y * k);
+  c.rotate(it.angle);
+  c.scale(Math.max(1, it.rx * k), Math.max(1, it.ry * k));
+  const g = c.createRadialGradient(0, 0, 0, 0, 0, 1);
+  stops(g);
+  c.fillStyle = g;
+  c.beginPath();
+  c.arc(0, 0, 1, 0, Math.PI * 2);
+  c.fill();
+  c.restore();
 }

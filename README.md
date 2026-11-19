@@ -16,7 +16,7 @@ Chrome (Android), sin instalar nada.
 | 1 · Calentamiento | Flexión, extensión, inclinación lateral, rotación, trapecio | 2 min |
 | 2 · Respiración | Inspirar 4 s · espirar 6 s, con círculo sobre el rostro | 1 min |
 | 3 · Piedra Gua Sha | Prepara la piel + cuello, mandíbula, sonrisa, ojos, cejas, frente (30 s por lado) | 6 min |
-| 4 · Estimulación de puntos faciales | Puntos verdes por parejas (cejas, sienes, delante de las orejas, mandíbula, cuello; 12 s cada pareja), finaliza, limpia tu piedra (reluciente, sobre la cabeza), comparte | 2 min |
+| 4 · Estimulación de puntos faciales | Puntos verdes por parejas (cejas, sienes, delante de las orejas, mandíbula, cuello; 12 s cada pareja), finaliza, limpia tu piedra (texto, 30 s), comparte | 2 min |
 
 **Recorrido**
 
@@ -29,12 +29,12 @@ Chrome (Android), sin instalar nada.
 4. Al acabar el tiempo se abre la ficha del paso siguiente (o la portada del bloque siguiente).
 
 **Compartir:** el botón de cámara compone una imagen vertical en el propio móvil: cámara en espejo,
-brillo en la piel (luz en pómulos y destellos), marco fino, «Ritual facial con» + logotipo OLIVYX,
+glow en la piel (brillo jugoso en pómulos, nariz y labios, rubor suave, luz prismática tenue y halo difuso), marco fino, «Ritual facial con» + logotipo OLIVYX,
 el claim y @olivyx.es. En iOS y Android abre el menú de compartir del sistema.
 
 - Palabras clave en negrita: en `js/ritual.js`, el texto entre `**dobles asteriscos**`.
 - Bloques y textos de portada: `BLOCKS`; pasos y duraciones: `STEPS`; respiración: `BREATH`;
-  puntos: `POINT_GROUPS`; brillo de compartir: `GLOW_ZONES`; forma de la piedra: `js/stone.js`.
+  puntos: `POINT_GROUPS`; glow de compartir: `GLOW`; forma de la piedra: `js/stone.js`.
 
 ## Publicar en GitHub Pages
 
