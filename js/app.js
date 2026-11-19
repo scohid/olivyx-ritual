@@ -1,12 +1,12 @@
-import { startCamera, stopCamera, checkSupport, describeCameraError, isInAppBrowser } from './camera.js';
-import { createTracker } from './tracker.js';
-import { FaceState, makeMapper } from './faceState.js';
-import { Renderer } from './renderer.js';
+import { startCamera, stopCamera, checkSupport, describeCameraError, isInAppBrowser } from './camera.js?v=20261119b';
+import { createTracker } from './tracker.js?v=20261119b';
+import { FaceState, makeMapper } from './faceState.js?v=20261119b';
+import { Renderer } from './renderer.js?v=20261119b';
 import {
   RITUAL, SECTIONS, TOTAL_SECONDS, BREATH, EDGES, FACE_OVAL,
   requiredIndices, resolveStroke, emphasize,
-} from './ritual.js';
-import { stoneIcon } from './stone.js';
+} from './ritual.js?v=20261119b';
+import { stoneIcon } from './stone.js?v=20261119b';
 
 const $ = (s) => document.querySelector(s);
 const params = new URLSearchParams(location.search);
@@ -492,7 +492,16 @@ window.addEventListener('resize', () => {
   resizeTimer = setTimeout(() => { renderer.resize(); face.reset(); }, 120);
 });
 
+// Comprobación de integridad: si falta algún elemento, el HTML y el JS no son
+// de la misma versión (subida incompleta o caché).
+const missing = Object.entries(el).filter(([, node]) => !node).map(([k]) => k);
+if (missing.length) {
+  console.error('[OLIVYX] faltan elementos en index.html:', missing);
+  document.documentElement.dataset.versionError = 'html';
+}
+
 buildSegments();
+window.__OLIVYX_VERSION = '20261119b';
 if (el.introTime) el.introTime.textContent = String(Math.round(TOTAL_SECONDS / 60));
 if (isInAppBrowser()) el.inapp.hidden = false;
 if (DEBUG) el.debug.hidden = false;

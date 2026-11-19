@@ -2,7 +2,7 @@
 // marcando el sentido y el ritmo del movimiento, y la piedra Gua Sha
 // deslizándose con la parte de trabajo por delante.
 
-import { STONE_PATH, STONE_EDGES, STONE_WIDTH } from './stone.js';
+import { STONE_PATH, STONE_EDGES, STONE_WIDTH } from './stone.js?v=20261119b';
 
 const CREAM = '246, 241, 228';
 const LIGHT = '255, 248, 226';

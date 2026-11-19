@@ -479,6 +479,22 @@ body[data-screen='stage'] #stage { display: flex; }
   z-index: 3;
 }
 
+.version-alert {
+  position: fixed;
+  left: 12px; right: 12px;
+  top: calc(12px + var(--safe-t));
+  z-index: 50;
+  padding: 14px 16px;
+  border-radius: 14px;
+  background: #fff6dc;
+  color: var(--olive-900);
+  font-size: 13px;
+  line-height: 1.5;
+  box-shadow: 0 10px 30px -10px rgba(0, 0, 0, .35);
+}
+.version-alert strong { display: block; font-weight: 500; }
+.version-alert code { font-family: ui-monospace, monospace; font-size: 12px; }
+
 .noscript { padding: 40px; text-align: center; }
 
 .screen-loading .logo { margin-bottom: 12px; }
