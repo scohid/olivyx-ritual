@@ -29,12 +29,12 @@ Chrome (Android), sin instalar nada.
 4. Al acabar el tiempo se abre la ficha del paso siguiente (o la portada del bloque siguiente).
 
 **Compartir:** el botón de cámara compone una imagen vertical en el propio móvil: cámara en espejo,
-luz de golden hour (sol rasante desde arriba a la derecha, piel dorada y anaranjada, sombras cálidas profundas y halo suave), marco fino, «Ritual facial con» + logotipo OLIVYX,
+el mismo tono cálido que se ve en pantalla en «Comparte tu ritual» (luz suave desde arriba a la derecha), marco fino, «Ritual facial con» + logotipo OLIVYX,
 el claim y @olivyx.es. En iOS y Android abre el menú de compartir del sistema.
 
 - Palabras clave en negrita: en `js/ritual.js`, el texto entre `**dobles asteriscos**`.
 - Bloques y textos de portada: `BLOCKS`; pasos y duraciones: `STEPS`; respiración: `BREATH`;
-  puntos: `POINT_GROUPS`; revelado de la foto: `gradeGoldenHour()` en `js/app.js`; forma de la piedra: `js/stone.js`.
+  puntos: `POINT_GROUPS`; aspecto de la foto: `LOOK` en `js/app.js` (igual que `body[data-look=sun]` en el CSS); forma de la piedra: `js/stone.js`.
 
 ## Publicar en GitHub Pages
 

@@ -1,14 +1,14 @@
-import { startCamera, stopCamera, checkSupport, describeCameraError, isInAppBrowser } from './camera.js?v=20261120c';
-import { createTracker } from './tracker.js?v=20261120c';
-import { FaceState, makeMapper } from './faceState.js?v=20261120c';
-import { Renderer } from './renderer.js?v=20261120c';
+import { startCamera, stopCamera, checkSupport, describeCameraError, isInAppBrowser } from './camera.js?v=20261120d';
+import { createTracker } from './tracker.js?v=20261120d';
+import { FaceState, makeMapper } from './faceState.js?v=20261120d';
+import { Renderer } from './renderer.js?v=20261120d';
 import {
   RITUAL, SECTIONS, BLOCKS, BREATH, EDGES, FACE_OVAL,
   requiredIndices, resolveStroke, emphasize,
-} from './ritual.js?v=20261120c';
-import { stoneIcon } from './stone.js?v=20261120c';
+} from './ritual.js?v=20261120d';
+import { stoneIcon } from './stone.js?v=20261120d';
 
-const VERSION = '20261120c';
+const VERSION = '20261120d';
 const $ = (s) => document.querySelector(s);
 const params = new URLSearchParams(location.search);
 const DEBUG = params.has('debug');
@@ -607,74 +607,84 @@ const loadImage = (src) => new Promise((resolve, reject) => {
   img.src = src;
 });
 
-/**
- * Luz de «golden hour»: el sol entra rasante desde arriba a la derecha.
- * La zona iluminada se vuelve dorada y anaranjada y gana luz; el lado
- * contrario cae a una sombra cálida y profunda. No es un tinte uniforme:
- * cada píxel recibe más o menos sol según su posición.
- */
-function gradeGoldenHour(x, w, h) {
-  const img = x.getImageData(0, 0, w, h);
-  const d = img.data;
-  // Dirección hacia el sol (arriba a la derecha) y centro del haz (el rostro)
-  const sx = 0.78, sy = -0.62;
-  const cx = w * 0.5, cy = h * 0.4;
-  // Curva de contraste suave con sombras profundas
-  const lut = new Uint8ClampedArray(256);
-  for (let i = 0; i < 256; i++) {
-    const t = i / 255;
-    const sc = t < 0.5 ? 0.5 * Math.pow(2 * t, 1.3) : 1 - 0.5 * Math.pow(2 * (1 - t), 1.3);
-    lut[i] = Math.round((0.01 + sc * 0.99) * 255);
-  }
-  for (let py = 0; py < h; py++) {
-    const dy = (py - cy) * sy;
-    let i = py * w * 4;
-    for (let px = 0; px < w; px++, i += 4) {
-      // cantidad de sol en este punto (0 = sombra, 1 = sol pleno)
-      const u = ((px - cx) * sx + dy) / w;
-      let L = (u + 0.38) / 0.76;
-      L = L < 0 ? 0 : L > 1 ? 1 : L;
-      L = L * L * (3 - 2 * L);
-      let r = d[i], g = d[i + 1], b = d[i + 2];
-      const lum = 0.299 * r + 0.587 * g + 0.114 * b;
-      // un poco más de color
-      r = lum + (r - lum) * 1.12; g = lum + (g - lum) * 1.08; b = lum + (b - lum) * 1.05;
-      // exposición según el sol: sombras ~0,6, luz ~1,2
-      const e = 0.58 + 0.62 * L;
-      r = r * e * (1.01 + 0.08 * L) + 10 * L;
-      g = g * e * (0.96 + 0.03 * L) + 6 * L;
-      b = b * e * (0.86 - 0.06 * L);
-      // las sombras se quedan cálidas (marrón ámbar), no grises
-      const lo = lum < 80 ? (80 - lum) / 80 : 0;
-      r += lo * 6; g += lo * 3;
-      d[i] = lut[r < 0 ? 0 : r > 255 ? 255 : r | 0];
-      d[i + 1] = lut[g < 0 ? 0 : g > 255 ? 255 : g | 0];
-      d[i + 2] = lut[b < 0 ? 0 : b > 255 ? 255 : b | 0];
-    }
-  }
-  x.putImageData(img, 0, 0);
+// Ajustes del aspecto de «Comparte tu ritual». Son los mismos que aplica el
+// CSS a la vista en directo (body[data-look='sun'] en styles.css), para que
+// la foto final tenga exactamente el color que se ve en pantalla.
+const LOOK = {
+  saturate: 1.15,
+  contrast: 1.08,
+  brightness: 0.94,
+  // luz: linear-gradient(to bottom left, …) con mix-blend-mode: overlay
+  stops: [
+    [0, [255, 196, 120], 0.6],
+    [0.32, [255, 180, 110], 0.22],
+    [0.52, [120, 60, 20], 0],
+    [1, [60, 34, 14], 0.5],
+  ],
+};
+
+/** Color de la luz en la posición t (0..1), interpolado como en CSS (premultiplicado). */
+function lookStop(t) {
+  const st = LOOK.stops;
+  let k = 0;
+  while (k < st.length - 2 && t > st[k + 1][0]) k++;
+  const [t0, c0, a0] = st[k], [t1, c1, a1] = st[k + 1];
+  const f = Math.min(1, Math.max(0, (t - t0) / (t1 - t0)));
+  const a = a0 + (a1 - a0) * f;
+  if (a <= 0) return [0, 0, 0, 0];
+  // premultiplicado: (c0·a0)·(1-f) + (c1·a1)·f, dividido entre a
+  const pm = (j) => (c0[j] * a0 * (1 - f) + c1[j] * a1 * f) / a;
+  return [pm(0) / 255, pm(1) / 255, pm(2) / 255, a];
 }
 
 /**
- * Halo cálido (halación): copia muy desenfocada, teñida de ámbar, sumada en
- * «screen». Hace que la piel iluminada brille como al atardecer.
+ * Aplica a la imagen de la cámara el mismo aspecto que la vista en directo:
+ * filtro saturate → contrast → brightness y, encima, la luz en modo overlay.
  */
-function goldenHalation(x, cv, w, h) {
-  const sm = document.createElement('canvas');
-  sm.width = Math.max(1, Math.round(w / 18));
-  sm.height = Math.max(1, Math.round(h / 18));
-  const s = sm.getContext('2d');
-  s.imageSmoothingQuality = 'high';
-  s.drawImage(cv, 0, 0, sm.width, sm.height);
-  s.globalCompositeOperation = 'multiply';
-  s.fillStyle = 'rgb(255, 205, 150)';
-  s.fillRect(0, 0, sm.width, sm.height);
-  x.save();
-  x.globalCompositeOperation = 'screen';
-  x.globalAlpha = 0.16;
-  x.imageSmoothingQuality = 'high';
-  x.drawImage(sm, 0, 0, w, h);
-  x.restore();
+function applyScreenLook(x, w, h) {
+  const img = x.getImageData(0, 0, w, h);
+  const d = img.data;
+  const S = LOOK.saturate, C = LOOK.contrast, Bv = LOOK.brightness;
+  // Matriz de saturación (especificación de filtros CSS)
+  const m = [
+    0.213 + 0.787 * S, 0.715 - 0.715 * S, 0.072 - 0.072 * S,
+    0.213 - 0.213 * S, 0.715 + 0.285 * S, 0.072 - 0.072 * S,
+    0.213 - 0.213 * S, 0.715 - 0.715 * S, 0.072 + 0.928 * S,
+  ];
+  // Tabla de la luz por t, para no interpolar en cada píxel
+  const N = 512;
+  const lut = new Float32Array(N * 4);
+  for (let i = 0; i < N; i++) lut.set(lookStop(i / (N - 1)), i * 4);
+  const clamp01 = (v) => (v < 0 ? 0 : v > 1 ? 1 : v);
+  const overlay = (cb, cs) => (cb <= 0.5 ? 2 * cs * cb : 1 - 2 * (1 - cs) * (1 - cb));
+  for (let py = 0; py < h; py++) {
+    let i = py * w * 4;
+    const ty = py / (2 * h);
+    for (let px = 0; px < w; px++, i += 4) {
+      let r = d[i] / 255, g = d[i + 1] / 255, b = d[i + 2] / 255;
+      // saturate
+      const r1 = m[0] * r + m[1] * g + m[2] * b;
+      const g1 = m[3] * r + m[4] * g + m[5] * b;
+      const b1 = m[6] * r + m[7] * g + m[8] * b;
+      // contrast + brightness
+      r = clamp01(clamp01((r1 - 0.5) * C + 0.5) * Bv);
+      g = clamp01(clamp01((g1 - 0.5) * C + 0.5) * Bv);
+      b = clamp01(clamp01((b1 - 0.5) * C + 0.5) * Bv);
+      // luz «to bottom left»: t = (w - x)/(2w) + y/(2h)
+      const t = (w - px) / (2 * w) + ty;
+      const li = Math.min(N - 1, Math.max(0, Math.round(t * (N - 1)))) * 4;
+      const a = lut[li + 3];
+      if (a > 0) {
+        r = r + (overlay(r, lut[li]) - r) * a;
+        g = g + (overlay(g, lut[li + 1]) - g) * a;
+        b = b + (overlay(b, lut[li + 2]) - b) * a;
+      }
+      d[i] = r * 255 + 0.5;
+      d[i + 1] = g * 255 + 0.5;
+      d[i + 2] = b * 255 + 0.5;
+    }
+  }
+  x.putImageData(img, 0, 0);
 }
 
 /** Compone una imagen vertical: cámara (espejo) + líneas + logo + texto. */
@@ -697,9 +707,8 @@ async function captureImage() {
   x.drawImage(v, (cw - dw) / 2, (ch - dh) / 2, dw, dh);
   x.restore();
 
-  // 2. Luz de golden hour (solo la imagen de la cámara, antes de los textos)
-  gradeGoldenHour(x, cw, ch);
-  goldenHalation(x, cv, cw, ch);
+  // 2. Mismo color que la vista en directo de «Comparte tu ritual»
+  applyScreenLook(x, cw, ch);
 
   // 4. Sombra neutra muy suave abajo, solo para que se lea la firma
   const g = x.createLinearGradient(0, ch * 0.62, 0, ch);
