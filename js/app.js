@@ -1,14 +1,14 @@
-import { startCamera, stopCamera, checkSupport, describeCameraError, isInAppBrowser } from './camera.js?v=20261120a';
-import { createTracker } from './tracker.js?v=20261120a';
-import { FaceState, makeMapper } from './faceState.js?v=20261120a';
-import { Renderer } from './renderer.js?v=20261120a';
+import { startCamera, stopCamera, checkSupport, describeCameraError, isInAppBrowser } from './camera.js?v=20261120c';
+import { createTracker } from './tracker.js?v=20261120c';
+import { FaceState, makeMapper } from './faceState.js?v=20261120c';
+import { Renderer } from './renderer.js?v=20261120c';
 import {
   RITUAL, SECTIONS, BLOCKS, BREATH, EDGES, FACE_OVAL,
   requiredIndices, resolveStroke, emphasize,
-} from './ritual.js?v=20261120a';
-import { stoneIcon } from './stone.js?v=20261120a';
+} from './ritual.js?v=20261120c';
+import { stoneIcon } from './stone.js?v=20261120c';
 
-const VERSION = '20261120a';
+const VERSION = '20261120c';
 const $ = (s) => document.querySelector(s);
 const params = new URLSearchParams(location.search);
 const DEBUG = params.has('debug');
@@ -608,38 +608,73 @@ const loadImage = (src) => new Promise((resolve, reject) => {
 });
 
 /**
- * Revelado cálido tipo editorial: más saturación, tono dorado, luces
- * melocotón, curva en S suave, negros ligeramente levantados y grano fino.
+ * Luz de «golden hour»: el sol entra rasante desde arriba a la derecha.
+ * La zona iluminada se vuelve dorada y anaranjada y gana luz; el lado
+ * contrario cae a una sombra cálida y profunda. No es un tinte uniforme:
+ * cada píxel recibe más o menos sol según su posición.
  */
-function gradeSunshine(x, w, h) {
+function gradeGoldenHour(x, w, h) {
   const img = x.getImageData(0, 0, w, h);
   const d = img.data;
-  // Curva en S con negros mate
+  // Dirección hacia el sol (arriba a la derecha) y centro del haz (el rostro)
+  const sx = 0.78, sy = -0.62;
+  const cx = w * 0.5, cy = h * 0.4;
+  // Curva de contraste suave con sombras profundas
   const lut = new Uint8ClampedArray(256);
   for (let i = 0; i < 256; i++) {
     const t = i / 255;
-    const sc = t < 0.5 ? 0.5 * Math.pow(2 * t, 1.25) : 1 - 0.5 * Math.pow(2 * (1 - t), 1.25);
-    lut[i] = Math.round((0.045 + sc * 0.95) * 255);
+    const sc = t < 0.5 ? 0.5 * Math.pow(2 * t, 1.3) : 1 - 0.5 * Math.pow(2 * (1 - t), 1.3);
+    lut[i] = Math.round((0.01 + sc * 0.99) * 255);
   }
-  for (let i = 0; i < d.length; i += 4) {
-    let r = d[i], g = d[i + 1], b = d[i + 2];
-    const l = 0.299 * r + 0.587 * g + 0.114 * b;
-    // saturación
-    r = l + (r - l) * 1.16; g = l + (g - l) * 1.12; b = l + (b - l) * 1.08;
-    // calidez general
-    r = r * 1.09 + 8; g = g * 1.02 + 3; b = b * 0.82;
-    // luces doradas / sombras cálidas
-    const hi = Math.max(0, (l - 140) / 115);
-    r += hi * 14; g += hi * 7; b -= hi * 8;
-    const lo = Math.max(0, (90 - l) / 90);
-    r += lo * 8; g += lo * 3;
-    // grano fino
-    const n = (Math.random() - 0.5) * 7;
-    d[i] = lut[Math.max(0, Math.min(255, r + n)) | 0];
-    d[i + 1] = lut[Math.max(0, Math.min(255, g + n)) | 0];
-    d[i + 2] = lut[Math.max(0, Math.min(255, b + n)) | 0];
+  for (let py = 0; py < h; py++) {
+    const dy = (py - cy) * sy;
+    let i = py * w * 4;
+    for (let px = 0; px < w; px++, i += 4) {
+      // cantidad de sol en este punto (0 = sombra, 1 = sol pleno)
+      const u = ((px - cx) * sx + dy) / w;
+      let L = (u + 0.38) / 0.76;
+      L = L < 0 ? 0 : L > 1 ? 1 : L;
+      L = L * L * (3 - 2 * L);
+      let r = d[i], g = d[i + 1], b = d[i + 2];
+      const lum = 0.299 * r + 0.587 * g + 0.114 * b;
+      // un poco más de color
+      r = lum + (r - lum) * 1.12; g = lum + (g - lum) * 1.08; b = lum + (b - lum) * 1.05;
+      // exposición según el sol: sombras ~0,6, luz ~1,2
+      const e = 0.58 + 0.62 * L;
+      r = r * e * (1.01 + 0.08 * L) + 10 * L;
+      g = g * e * (0.96 + 0.03 * L) + 6 * L;
+      b = b * e * (0.86 - 0.06 * L);
+      // las sombras se quedan cálidas (marrón ámbar), no grises
+      const lo = lum < 80 ? (80 - lum) / 80 : 0;
+      r += lo * 6; g += lo * 3;
+      d[i] = lut[r < 0 ? 0 : r > 255 ? 255 : r | 0];
+      d[i + 1] = lut[g < 0 ? 0 : g > 255 ? 255 : g | 0];
+      d[i + 2] = lut[b < 0 ? 0 : b > 255 ? 255 : b | 0];
+    }
   }
   x.putImageData(img, 0, 0);
+}
+
+/**
+ * Halo cálido (halación): copia muy desenfocada, teñida de ámbar, sumada en
+ * «screen». Hace que la piel iluminada brille como al atardecer.
+ */
+function goldenHalation(x, cv, w, h) {
+  const sm = document.createElement('canvas');
+  sm.width = Math.max(1, Math.round(w / 18));
+  sm.height = Math.max(1, Math.round(h / 18));
+  const s = sm.getContext('2d');
+  s.imageSmoothingQuality = 'high';
+  s.drawImage(cv, 0, 0, sm.width, sm.height);
+  s.globalCompositeOperation = 'multiply';
+  s.fillStyle = 'rgb(255, 205, 150)';
+  s.fillRect(0, 0, sm.width, sm.height);
+  x.save();
+  x.globalCompositeOperation = 'screen';
+  x.globalAlpha = 0.16;
+  x.imageSmoothingQuality = 'high';
+  x.drawImage(sm, 0, 0, w, h);
+  x.restore();
 }
 
 /** Compone una imagen vertical: cámara (espejo) + líneas + logo + texto. */
@@ -662,28 +697,9 @@ async function captureImage() {
   x.drawImage(v, (cw - dw) / 2, (ch - dh) / 2, dw, dh);
   x.restore();
 
-  // 2. Revelado fotográfico «sunshine» de portada de revista (solo la cámara,
-  //    antes de los textos): cálido, dorado, con contraste y negros mate.
-  gradeSunshine(x, cw, ch);
-
-  // 3. Luz de sol entrando por arriba a la derecha y viñeta cálida
-  x.save();
-  x.globalCompositeOperation = 'screen';
-  const sun = x.createRadialGradient(cw * 0.92, ch * 0.02, 0, cw * 0.92, ch * 0.02, ch * 0.75);
-  sun.addColorStop(0, 'rgba(255, 196, 120, 0.62)');
-  sun.addColorStop(0.35, 'rgba(255, 170, 90, 0.22)');
-  sun.addColorStop(1, 'rgba(255, 160, 80, 0)');
-  x.fillStyle = sun;
-  x.fillRect(0, 0, cw, ch);
-  x.restore();
-  x.save();
-  x.globalCompositeOperation = 'multiply';
-  const vig = x.createRadialGradient(cw / 2, ch * 0.42, ch * 0.28, cw / 2, ch * 0.45, ch * 0.78);
-  vig.addColorStop(0, 'rgba(255, 255, 255, 1)');
-  vig.addColorStop(1, 'rgba(120, 78, 40, 1)');
-  x.fillStyle = vig;
-  x.fillRect(0, 0, cw, ch);
-  x.restore();
+  // 2. Luz de golden hour (solo la imagen de la cámara, antes de los textos)
+  gradeGoldenHour(x, cw, ch);
+  goldenHalation(x, cv, cw, ch);
 
   // 4. Sombra neutra muy suave abajo, solo para que se lea la firma
   const g = x.createLinearGradient(0, ch * 0.62, 0, ch);
