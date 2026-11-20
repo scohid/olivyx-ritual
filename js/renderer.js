@@ -2,7 +2,7 @@
 // marcando el sentido y el ritmo del movimiento, y la piedra Gua Sha
 // deslizándose con la parte de trabajo por delante.
 
-import { STONE_PATH, STONE_EDGES, STONE_WIDTH, STONE_HEIGHT } from './stone.js?v=20261119g';
+import { STONE_PATH, STONE_EDGES, STONE_WIDTH, STONE_HEIGHT } from './stone.js?v=20261120a';
 
 const CREAM = '246, 241, 228';
 const LIGHT = '255, 248, 226';
@@ -319,11 +319,6 @@ export class Renderer {
     });
   }
 
-  /** Glow en pantalla (sobre el lienzo transparente de la superposición). */
-  glow(items, prism, t, alpha) {
-    drawGlow(this.ctx, items, prism, t, alpha, { blend: false, k: 1 });
-  }
-
   debug(face, labels) {
     const c = this.ctx;
     if (face.raw && face.map) {
@@ -342,85 +337,3 @@ export class Renderer {
   }
 }
 
-/**
- * Glow elegante: brillo húmedo en las zonas altas del rostro, rubor suave y
- * una luz prismática muy tenue que cruza en diagonal.
- * - blend: true cuando se pinta directamente sobre la imagen de la cámara
- *   (foto final): usa modos de fusión «screen» y «soft-light» para que la luz
- *   se integre en la piel. En pantalla (lienzo transparente) se usa opacidad.
- * - k: escala de coordenadas (la foto final se genera a mayor resolución).
- */
-export function drawGlow(c, items, prism, t, alpha, { blend, k }) {
-  const shimmer = 0.9 + 0.1 * Math.sin(t * 1.3);
-
-  // Rubor: tono melocotón rosado, muy difuso
-  for (const it of items) {
-    if (it.kind !== 'blush') continue;
-    ellipse(c, it, k, (g) => {
-      g.addColorStop(0, `rgba(244, 150, 140, ${(blend ? 0.5 : 0.16) * alpha})`);
-      g.addColorStop(1, 'rgba(244, 150, 140, 0)');
-    }, blend ? 'soft-light' : 'source-over');
-  }
-
-  // Luz prismática (iridiscente) muy sutil, que se desplaza despacio
-  if (prism) {
-    c.save();
-    c.globalCompositeOperation = blend ? 'screen' : 'source-over';
-    c.translate(prism.x * k, prism.y * k);
-    c.rotate(prism.angle);
-    const L = prism.size * k;
-    const drift = Math.sin(t * 0.35) * L * 0.08;
-    [[-0.32, 0.16], [0.42, 0.11]].forEach(([off, wdt]) => {
-      const y0 = off * L + drift;
-      const g = c.createLinearGradient(0, y0 - wdt * L, 0, y0 + wdt * L);
-      const a = (blend ? 0.2 : 0.1) * alpha;
-      g.addColorStop(0, 'rgba(255, 170, 210, 0)');
-      g.addColorStop(0.25, `rgba(255, 170, 210, ${a})`);
-      g.addColorStop(0.45, `rgba(255, 230, 160, ${a})`);
-      g.addColorStop(0.62, `rgba(170, 245, 200, ${a})`);
-      g.addColorStop(0.8, `rgba(170, 210, 255, ${a})`);
-      g.addColorStop(1, 'rgba(170, 210, 255, 0)');
-      c.fillStyle = g;
-      c.fillRect(-L, y0 - wdt * L, L * 2, wdt * L * 2);
-    });
-    c.restore();
-  }
-
-  // Luz difusa (frente)
-  for (const it of items) {
-    if (it.kind !== 'soft') continue;
-    ellipse(c, it, k, (g) => {
-      g.addColorStop(0, `rgba(255, 244, 230, ${(blend ? 0.28 : 0.14) * alpha})`);
-      g.addColorStop(1, 'rgba(255, 244, 230, 0)');
-    }, blend ? 'screen' : 'source-over');
-  }
-
-  // Brillo húmedo: núcleo luminoso y halo amplio
-  for (const it of items) {
-    if (it.kind !== 'spec') continue;
-    ellipse(c, { ...it, rx: it.rx * 1.9, ry: it.ry * 2.4 }, k, (g) => {
-      g.addColorStop(0, `rgba(255, 240, 225, ${(blend ? 0.32 : 0.14) * alpha * shimmer})`);
-      g.addColorStop(1, 'rgba(255, 240, 225, 0)');
-    }, blend ? 'screen' : 'source-over');
-    ellipse(c, it, k, (g) => {
-      g.addColorStop(0, `rgba(255, 255, 250, ${(blend ? 0.75 : 0.42) * alpha * shimmer})`);
-      g.addColorStop(0.5, `rgba(255, 250, 240, ${(blend ? 0.3 : 0.16) * alpha * shimmer})`);
-      g.addColorStop(1, 'rgba(255, 250, 240, 0)');
-    }, blend ? 'screen' : 'source-over');
-  }
-}
-
-function ellipse(c, it, k, stops, op) {
-  c.save();
-  c.globalCompositeOperation = op;
-  c.translate(it.x * k, it.y * k);
-  c.rotate(it.angle);
-  c.scale(Math.max(1, it.rx * k), Math.max(1, it.ry * k));
-  const g = c.createRadialGradient(0, 0, 0, 0, 0, 1);
-  stops(g);
-  c.fillStyle = g;
-  c.beginPath();
-  c.arc(0, 0, 1, 0, Math.PI * 2);
-  c.fill();
-  c.restore();
-}

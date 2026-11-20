@@ -9,7 +9,7 @@
   <link rel="icon" href="assets/favicon.svg" type="image/svg+xml" />
   <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
   <link rel="preload" href="assets/fonts/Poppins-Light.woff" as="font" type="font/woff" crossorigin />
-  <link rel="stylesheet" href="css/styles.css?v=20261119g" />
+  <link rel="stylesheet" href="css/styles.css?v=20261120a" />
 </head>
 <body data-screen="intro">
 
@@ -65,6 +65,7 @@
   <section class="screen screen-stage" id="stage">
     <video id="video" autoplay muted playsinline></video>
     <canvas id="overlay" aria-hidden="true"></canvas>
+    <div class="sun-leak" aria-hidden="true"></div>
     <div class="vignette" aria-hidden="true"></div>
 
     <header class="stage-top">
@@ -95,6 +96,7 @@
 
     <!-- Ficha del paso: centrada, para leer antes de empezar -->
     <section class="info-card" id="info-card" aria-live="polite" aria-labelledby="info-title">
+      <div class="card-bubbles" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
       <img class="sheet-logo" src="assets/olivyx-logo-light.svg" alt="OLIVYX" />
       <p class="step-eyebrow" id="info-eyebrow"></p>
       <h2 class="info-title" id="info-title"></h2>
@@ -195,11 +197,11 @@
   <script>
     window.addEventListener('load', function () {
       setTimeout(function () {
-        var bad = window.__OLIVYX_VERSION !== '20261119g' || document.documentElement.dataset.versionError;
+        var bad = window.__OLIVYX_VERSION !== '20261120a' || document.documentElement.dataset.versionError;
         if (bad) document.getElementById('version-alert').hidden = false;
       }, 1500);
     });
   </script>
-  <script type="module" src="js/app.js?v=20261119g"></script>
+  <script type="module" src="js/app.js?v=20261120a"></script>
 </body>
 </html>

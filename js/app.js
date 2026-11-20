@@ -1,14 +1,14 @@
-import { startCamera, stopCamera, checkSupport, describeCameraError, isInAppBrowser } from './camera.js?v=20261119g';
-import { createTracker } from './tracker.js?v=20261119g';
-import { FaceState, makeMapper } from './faceState.js?v=20261119g';
-import { Renderer, drawGlow } from './renderer.js?v=20261119g';
+import { startCamera, stopCamera, checkSupport, describeCameraError, isInAppBrowser } from './camera.js?v=20261120a';
+import { createTracker } from './tracker.js?v=20261120a';
+import { FaceState, makeMapper } from './faceState.js?v=20261120a';
+import { Renderer } from './renderer.js?v=20261120a';
 import {
-  RITUAL, SECTIONS, BLOCKS, BREATH, EDGES, FACE_OVAL, GLOW,
+  RITUAL, SECTIONS, BLOCKS, BREATH, EDGES, FACE_OVAL,
   requiredIndices, resolveStroke, emphasize,
-} from './ritual.js?v=20261119g';
-import { stoneIcon } from './stone.js?v=20261119g';
+} from './ritual.js?v=20261120a';
+import { stoneIcon } from './stone.js?v=20261120a';
 
-const VERSION = '20261119g';
+const VERSION = '20261120a';
 const $ = (s) => document.querySelector(s);
 const params = new URLSearchParams(location.search);
 const DEBUG = params.has('debug');
@@ -266,6 +266,7 @@ function goToStep(i) {
   el.endActions.hidden = !step.share;
   el.timer.hidden = !step.seconds;
   el.timer.classList.remove('done');
+  document.body.dataset.look = step.look || '';
 
   updateMove();
   updateTimer(true);
@@ -318,7 +319,7 @@ function startTicker(steps) {
       k = (k + 1) % steps.length;
       if (tickTimer) showTick();
     }, 450);
-  }, 2200);
+  }, 4500);
 }
 function stopTicker() {
   if (tickTimer) clearInterval(tickTimer);
@@ -328,10 +329,14 @@ function stopTicker() {
 /** Muestra la ficha centrada y pausa el ejercicio. */
 function openInfo() {
   stopTicker();
+  const step = RITUAL[state.step];
   state.panel = 'info';
-  state.playing = false;
-  el.continue.textContent = state.started ? 'Continuar' : 'Comenzar';
+  // Pasos solo de lectura (limpiar la piedra): el contador corre con la ficha
+  // abierta y «Siguiente» pasa directamente al paso siguiente.
+  state.playing = !!step.cardOnly;
+  el.continue.textContent = step.cardOnly ? 'Siguiente' : state.started ? 'Continuar' : 'Comenzar';
   document.body.dataset.panel = 'info';
+  document.body.dataset.cardOnly = step.cardOnly ? 'true' : '';
   el.infoCard.scrollTop = 0;
   syncPlay();
 }
@@ -448,7 +453,7 @@ function frame(now) {
   // 2. Contador del paso (solo con la ficha plegada). Al terminar, pasa al
   //    siguiente paso, que se abre con su ficha para leerla.
   const step = RITUAL[state.step];
-  if (state.panel === 'run' && state.playing && step.seconds) {
+  if ((state.panel === 'run' || (state.panel === 'info' && step.cardOnly)) && state.playing && step.seconds) {
     state.elapsed += dt;
     if (state.elapsed >= step.seconds) {
       if (state.step < RITUAL.length - 1) goToStep(state.step + 1);
@@ -545,11 +550,6 @@ function draw() {
     return;
   }
 
-  if (step.overlay === 'aura') {
-    state.glowData = glowData(faceW, vis);
-    renderer.glow(state.glowData.items, state.glowData.prism, state.anim, alpha);
-    return;
-  }
 
   const { move } = currentMove();
   const phase = (state.anim / (step.period || 2.2)) % 1;
@@ -580,29 +580,6 @@ function ovalRing(k, c, wobble = 0, seed = 0) {
   return pts;
 }
 
-/** Zonas de brillo, rubor y luz prismática sobre el rostro actual. */
-function glowData(faceW, vis) {
-  const items = [];
-  for (const g of GLOW) {
-    const r = resolveStroke(g, face);
-    const p = face.get(g.axis[0]), q = face.get(g.axis[1]);
-    if (!r || !p || !q) continue;
-    const a = vis[g.side];
-    items.push({
-      kind: g.kind,
-      x: r[0].x, y: r[0].y,
-      rx: g.w * faceW, ry: g.h * faceW * (0.4 + 0.6 * a),
-      angle: Math.atan2(q.y - p.y, q.x - p.x),
-    });
-  }
-  // Luz prismática: cruza el rostro en diagonal, siguiendo su inclinación.
-  const f = faceFrame();
-  const l = face.get(234), rr = face.get(454);
-  const roll = l && rr ? Math.atan2(rr.y - l.y, rr.x - l.x) : 0;
-  const prism = { x: f.x, y: f.y + f.h * 0.15, size: f.h * 1.1, angle: roll - 0.55 };
-  return { items, prism };
-}
-
 /** Respiración guiada: funciona aunque no se detecte el rostro. */
 function drawBreath() {
   const cycle = BREATH.inhale + BREATH.exhale;
@@ -630,6 +607,41 @@ const loadImage = (src) => new Promise((resolve, reject) => {
   img.src = src;
 });
 
+/**
+ * Revelado cálido tipo editorial: más saturación, tono dorado, luces
+ * melocotón, curva en S suave, negros ligeramente levantados y grano fino.
+ */
+function gradeSunshine(x, w, h) {
+  const img = x.getImageData(0, 0, w, h);
+  const d = img.data;
+  // Curva en S con negros mate
+  const lut = new Uint8ClampedArray(256);
+  for (let i = 0; i < 256; i++) {
+    const t = i / 255;
+    const sc = t < 0.5 ? 0.5 * Math.pow(2 * t, 1.25) : 1 - 0.5 * Math.pow(2 * (1 - t), 1.25);
+    lut[i] = Math.round((0.045 + sc * 0.95) * 255);
+  }
+  for (let i = 0; i < d.length; i += 4) {
+    let r = d[i], g = d[i + 1], b = d[i + 2];
+    const l = 0.299 * r + 0.587 * g + 0.114 * b;
+    // saturación
+    r = l + (r - l) * 1.16; g = l + (g - l) * 1.12; b = l + (b - l) * 1.08;
+    // calidez general
+    r = r * 1.09 + 8; g = g * 1.02 + 3; b = b * 0.82;
+    // luces doradas / sombras cálidas
+    const hi = Math.max(0, (l - 140) / 115);
+    r += hi * 14; g += hi * 7; b -= hi * 8;
+    const lo = Math.max(0, (90 - l) / 90);
+    r += lo * 8; g += lo * 3;
+    // grano fino
+    const n = (Math.random() - 0.5) * 7;
+    d[i] = lut[Math.max(0, Math.min(255, r + n)) | 0];
+    d[i + 1] = lut[Math.max(0, Math.min(255, g + n)) | 0];
+    d[i + 2] = lut[Math.max(0, Math.min(255, b + n)) | 0];
+  }
+  x.putImageData(img, 0, 0);
+}
+
 /** Compone una imagen vertical: cámara (espejo) + líneas + logo + texto. */
 async function captureImage() {
   const W = renderer.w, H = renderer.h;
@@ -650,26 +662,27 @@ async function captureImage() {
   x.drawImage(v, (cw - dw) / 2, (ch - dh) / 2, dw, dh);
   x.restore();
 
-  // 2. Glow: en el paso de compartir se pinta sobre la propia imagen con
-  //    modos de fusión, para que la luz se integre en la piel.
-  if (RITUAL[state.step].overlay === 'aura' && state.glowData && state.faceAlpha > 0.3) {
-    drawGlow(x, state.glowData.items, state.glowData.prism, state.anim, 1, { blend: true, k });
-  } else {
-    x.drawImage(el.canvas, 0, 0, cw, ch);
-  }
+  // 2. Revelado fotográfico «sunshine» de portada de revista (solo la cámara,
+  //    antes de los textos): cálido, dorado, con contraste y negros mate.
+  gradeSunshine(x, cw, ch);
 
-  // 3. Bloom: una copia muy desenfocada sumada en «screen» da el halo suave
-  const small = document.createElement('canvas');
-  small.width = Math.max(1, Math.round(cw / 14));
-  small.height = Math.max(1, Math.round(ch / 14));
-  const sx = small.getContext('2d');
-  sx.imageSmoothingQuality = 'high';
-  sx.drawImage(cv, 0, 0, small.width, small.height);
+  // 3. Luz de sol entrando por arriba a la derecha y viñeta cálida
   x.save();
   x.globalCompositeOperation = 'screen';
-  x.globalAlpha = 0.28;
-  x.imageSmoothingQuality = 'high';
-  x.drawImage(small, 0, 0, cw, ch);
+  const sun = x.createRadialGradient(cw * 0.92, ch * 0.02, 0, cw * 0.92, ch * 0.02, ch * 0.75);
+  sun.addColorStop(0, 'rgba(255, 196, 120, 0.62)');
+  sun.addColorStop(0.35, 'rgba(255, 170, 90, 0.22)');
+  sun.addColorStop(1, 'rgba(255, 160, 80, 0)');
+  x.fillStyle = sun;
+  x.fillRect(0, 0, cw, ch);
+  x.restore();
+  x.save();
+  x.globalCompositeOperation = 'multiply';
+  const vig = x.createRadialGradient(cw / 2, ch * 0.42, ch * 0.28, cw / 2, ch * 0.45, ch * 0.78);
+  vig.addColorStop(0, 'rgba(255, 255, 255, 1)');
+  vig.addColorStop(1, 'rgba(120, 78, 40, 1)');
+  x.fillStyle = vig;
+  x.fillRect(0, 0, cw, ch);
   x.restore();
 
   // 4. Sombra neutra muy suave abajo, solo para que se lea la firma
@@ -788,7 +801,7 @@ el.errorBack.addEventListener('click', () => show('intro'));
 el.close.addEventListener('click', exit);
 el.finish.addEventListener('click', exit);
 el.restart.addEventListener('click', () => { state.currentBlock = null; goToStep(0); });
-el.continue.addEventListener('click', startRun);
+el.continue.addEventListener('click', () => (RITUAL[state.step].cardOnly ? go(1) : startRun()));
 el.info.addEventListener('click', openInfo);
 el.blockBtn.addEventListener('click', openInfo);
 el.prev.addEventListener('click', () => go(-1));
@@ -816,7 +829,7 @@ window.addEventListener('keydown', (e) => {
   if (e.key === 'Enter' || e.key === ' ') {
     e.preventDefault();
     if (state.panel === 'block') openInfo();
-    else if (state.panel === 'info') startRun();
+    else if (state.panel === 'info') el.continue.click();
     else if (e.key === ' ') togglePlay();
   }
   if (e.key === 'ArrowRight') go(1);

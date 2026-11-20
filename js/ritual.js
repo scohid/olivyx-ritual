@@ -86,28 +86,6 @@ export const POINT_GROUPS = [
   { label: 'Cuello', points: twin(P(D(132, 10, 152, 0.4), 0.2, 152)) },
 ];
 
-// ── Glow para «Comparte tu ritual» ─────────────────────────────────────────
-// Piel jugosa y luminosa: brillos especulares donde la luz toca el rostro
-// (pómulos, arco de la ceja, tabique, punta de la nariz, arco de Cupido,
-// barbilla), un rubor suave en las mejillas y luz difusa en la frente.
-// w y h: tamaño relativo al ancho del rostro. axis: dos landmarks que dan
-// la orientación de la elipse.
-const G = (kind, anchor, w, h, axis) => ({ kind, anchors: [anchor], inset: 0, toward: 1, w, h, axis });
-const GLOW_A = [
-  G('spec', B(116, 50, 0.3), 0.17, 0.055, [50, 127]),     // pómulo
-  G('blush', B(50, 205, 0.35), 0.15, 0.11, [50, 127]),    // mejilla
-  G('spec', B(105, 66, 0.4), 0.075, 0.022, [107, 70]),    // arco de la ceja
-];
-export const GLOW = [
-  ...GLOW_A.map((g) => ({ side: 'a', ...g })),
-  ...GLOW_A.map((g) => ({ side: 'b', ...g, anchors: g.anchors.map(mirrorAnchor), axis: g.axis.map(m) })),
-  { side: 'c', ...G('spec', B(6, 4, 0.45), 0.022, 0.1, [168, 4]) },   // tabique
-  { side: 'c', ...G('spec', 4, 0.032, 0.024, [234, 454]) },           // punta de la nariz
-  { side: 'c', ...G('spec', B(0, 2, 0.35), 0.045, 0.012, [61, 291]) }, // arco de Cupido
-  { side: 'c', ...G('spec', B(17, 152, 0.6), 0.055, 0.03, [61, 291]) }, // barbilla
-  { side: 'c', ...G('soft', B(151, 9, 0.15), 0.16, 0.07, [67, 297]) },  // frente
-];
-
 // ── Bloques del ritual ─────────────────────────────────────────────────────
 export const BLOCKS = {
   'Calentamiento': 'Prepara el **cuello y los hombros** con estiramientos suaves antes del masaje.',
@@ -287,14 +265,15 @@ const STEPS = [
     title: 'Limpia tu piedra',
     text: 'Lávala con **agua tibia** y un **jabón suave**, sécala con un **paño limpio** y guárdala en su **funda**, lejos del sol directo.',
     note: 'Evita el **agua muy caliente** y los productos **abrasivos**.',
-    seconds: 30,
+    seconds: 15,
+    cardOnly: true,
   },
   {
     section: 'Estimulación de puntos faciales',
     title: 'Comparte tu ritual',
     text: 'Pulsa la **cámara** para crear tu **imagen del ritual** y **compártela** en tus redes sociales.',
     note: 'La imagen se crea **en tu móvil** y solo se comparte si tú lo decides.',
-    overlay: 'aura',
+    look: 'sun',
     share: true,
     seconds: 0,
   },
@@ -330,7 +309,6 @@ export function requiredIndices() {
     set.add(s.toward);
   })));
   RITUAL.forEach((step) => step.moves.forEach((mv) => (mv.points || []).forEach((p) => { p.anchors.forEach(add); set.add(p.toward); })));
-  GLOW.forEach((g) => { g.anchors.forEach(add); g.axis.forEach((i) => set.add(i)); set.add(g.toward); });
   return [...set];
 }
 
